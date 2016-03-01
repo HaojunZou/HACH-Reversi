@@ -22,6 +22,9 @@ class Algorithm {
     }
 
     void move(int i, int j){
+        //counter player's score
+        int scoreBlack = countScore(1);
+        int scoreWhite = countScore(-1);
         //using current piece face and grille position check the location
         if (checkLocation(curPiece, i, j, true)) {	//if the location is empty
             piece[i][j] = curPiece;
@@ -31,6 +34,12 @@ class Algorithm {
             if(curAvailable(curPiece)){
                 if(curAvailable(-1 * curPiece)){	//check the opponent player should pass
                     System.out.println("Game Over!");	//if yes, game over
+                    if(scoreBlack > scoreWhite)
+                        System.out.println("Black wins!");
+                    if(scoreBlack < scoreWhite)
+                        System.out.println("White wins!");
+                    else
+                        System.out.println("Draw!");
                     //TODO: popup game over!
                 }
                 else{	//if not, switch player
@@ -38,14 +47,9 @@ class Algorithm {
                     curPiece *= -1;
                 }
             }
-
-            //counter player's score
-            int scoreBlack = countScore(1);
-            int scoreWhite = countScore(-1);
             System.out.println("- Score -");
             System.out.println("Black: " + scoreBlack);
             System.out.println("White: " + scoreWhite + "\n");
-
         }
     }
 
