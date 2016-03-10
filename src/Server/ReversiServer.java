@@ -163,18 +163,12 @@ public class ReversiServer {
         }
 
         private void initGame(){
+            sendMessage("game", "on", "all");
             sendMessage("message", "Game Started", "all");
             sendMessage("message", "You play as white", "me");
             sendMessage("current", algorithm.getCurrentPlayer(), "all");
             sendMessage("show", algorithm.getCurrentMap(), "all");
             sendMessage("score", getScore(), "all");
-
-            sendMessage("game", "on", "all");
-//            sendMessage("message", "Game Started", "all");
-//            sendMessage("message", "You play as " + ((player.getColor() == 1) ? "black" : "white") , "me");
-//            sendMessage("current", algorithm.getCurrentPlayer(), "all");
-//            sendMessage("show", algorithm.getCurrentMap(), "all");
-//            sendMessage("score", getScore(), "all");
         }
 
         private int[] getScore(){
