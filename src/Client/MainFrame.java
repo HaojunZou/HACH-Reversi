@@ -7,7 +7,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
-import java.util.Arrays;
 
 public class MainFrame extends JFrame{
     private Socket socket = null;
@@ -16,7 +15,6 @@ public class MainFrame extends JFrame{
     private int[][] map = new int[8][8];	//main 2d-array to save all pieces
     private boolean inGame = false;
     private int currentPlayer = 1;
-    private JPanel panelStatus = new JPanel();
     private GamePanel gamePanel = new GamePanel(map);
 
     private static final Color BACKGROUND_COLOR = new Color(60, 150, 60);
@@ -24,30 +22,23 @@ public class MainFrame extends JFrame{
     private static final Color BLACK_COLOR = new Color(0, 0, 0);
     private static final Color WHITE_COLOR = new Color(255, 255, 255);
 
-    /****** Status Container ******/
-    private JPanel scorePanel = new JPanel();
-    //    private ConnectionPanel connectionPanel = new ConnectionPanel();
-    private JPanel dialogPanel = new JPanel();
-
     /****** Score Panel ******/
-    JLabel lbBlack = new JLabel("Black: ");
-    JLabel lbWhite = new JLabel("White: ");
-    JLabel countBlack = new JLabel("0");
-    JLabel countWhite = new JLabel("0");
-    JPanel playerBlackPanel = new JPanel();
-    JPanel playerWhitePanel = new JPanel();
+    private JLabel lbBlack = new JLabel("Black: "); //TODO: change to icon later on
+    private JLabel lbWhite = new JLabel("White: "); //TODO: change to icon later on
+    private JLabel countBlack = new JLabel("0");
+    private JLabel countWhite = new JLabel("0");
 
     /****** Dialog Panel ******/
     private JTextArea dialogArea = new JTextArea();
-    private JScrollPane dialogScroll = new JScrollPane(dialogArea);
     private JButton btnReady = new JButton("Ready");
 
     //Constructor
-    public MainFrame() {
+    private MainFrame() {
         /****** Main Frame ******/
         this.setSize(700, 500);
         this.setBackground(BACKGROUND_COLOR);
         this.setVisible(true);
+        JPanel panelStatus = new JPanel();
         this.add("East", panelStatus);
         this.add("Center", gamePanel);
 
@@ -55,8 +46,11 @@ public class MainFrame extends JFrame{
         panelStatus.setLayout(new BoxLayout(panelStatus, BoxLayout.Y_AXIS));
         Dimension dStatus = new Dimension(200, 500);
         panelStatus.setPreferredSize(dStatus);
+
+        /***** Status Container */
+        JPanel scorePanel = new JPanel();
+        JPanel dialogPanel = new JPanel();
         panelStatus.add(scorePanel);
-//        panelStatus.add(connectionPanel);
         panelStatus.add(dialogPanel);
 
         /****** Score Panel ******/
@@ -65,7 +59,9 @@ public class MainFrame extends JFrame{
         Dimension dBlack = new Dimension(200, 50);
         Dimension dWhite = new Dimension(200, 50);
         scorePanel.setPreferredSize(dScore);
+        JPanel playerBlackPanel = new JPanel();
         playerBlackPanel.setPreferredSize(dBlack);
+        JPanel playerWhitePanel = new JPanel();
         playerWhitePanel.setPreferredSize(dWhite);
         scorePanel.add(playerBlackPanel);
         scorePanel.add(playerWhitePanel);
@@ -78,6 +74,7 @@ public class MainFrame extends JFrame{
         dialogPanel.setLayout(new BoxLayout(dialogPanel, BoxLayout.Y_AXIS));
         Dimension dReady = new Dimension(200, 25);
         Dimension dScroll = new Dimension(200, 275);
+        JScrollPane dialogScroll = new JScrollPane(dialogArea);
         dialogScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         btnReady.setPreferredSize(dReady);
         dialogScroll.setPreferredSize(dScroll);
@@ -125,7 +122,7 @@ public class MainFrame extends JFrame{
         new MainFrame();
     }
 
-    class GamePanel extends JPanel implements MouseListener{
+    private class GamePanel extends JPanel implements MouseListener{
         int [][] piece = new int [8][8];
         //Constructor
         GamePanel(int[][] piece){
@@ -266,7 +263,7 @@ public class MainFrame extends JFrame{
         }.start();
     }
 
-    public void sendMessage(String key, Object value){
+    private void sendMessage(String key, Object value){
         try {
             if(socket.isConnected()) {
                 JSONObject jsonSend = new JSONObject();
@@ -282,7 +279,7 @@ public class MainFrame extends JFrame{
         }
     }
 
-    public int[][] refreshMap(String jsonString){
+    private int[][] refreshMap(String jsonString){
         int[][] newMap = new int [8][8];
         new Thread(){
             @Override
