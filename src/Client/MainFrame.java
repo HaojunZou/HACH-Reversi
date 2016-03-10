@@ -10,24 +10,23 @@ import java.net.Socket;
 import java.util.Arrays;
 
 public class MainFrame extends JFrame{
-    private Socket socket;
+    private Socket socket = null;
     private	BufferedReader bufferedReader;
     private	BufferedWriter bufferedWriter;
     private static final int BLACK = 1;     //player BLACK
     private static final int WHITE = -1;	//player WHITE
     private static final Color BACKGROUND_COLOR = new Color(60, 150, 60);	//set background color;
     private static final Color AVAILABLE_PLACE_COLOR = new Color(50, 50, 50);	//set available places color;
-    private int myFace;
     private int[][] map = new int[8][8];	//main 2d-array to save all pieces
 //    private MessageBoy messageBoy = new MessageBoy();
     private JSONObject jsonObject;
-    private StatusContainer panelStatus = new StatusContainer();
+    private JPanel panelStatus = new JPanel();
     private GamePanel gamePanel = new GamePanel(map);
 
     /****** Status Container ******/
-    private ScorePanel scorePanel = new ScorePanel();
+    private JPanel scorePanel = new JPanel();
 //    private ConnectionPanel connectionPanel = new ConnectionPanel();
-    private DialogPanel dialogPanel = new DialogPanel();
+    private JPanel dialogPanel = new JPanel();
 
     /****** Score Panel ******/
     JLabel lbBlack = new JLabel("Black: ");
@@ -103,21 +102,21 @@ public class MainFrame extends JFrame{
 
     private void launch(){
         try {
-            socket = new Socket("127.0.0.1", 8888);
+            socket = new Socket("127.0.0.1", 20000);
             btnReady.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
                     if(btnReady.isEnabled()) {
-                        sendMessage(socket, "command", "ready");
+                        sendMessage("command", "ready");
                     }
                     btnReady.setEnabled(false);
                 }
             });
+            getMessage();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        getMessage(socket);
     }
 
     //main method access
@@ -214,8 +213,8 @@ public class MainFrame extends JFrame{
             if (i < 0 || i >= 8 || j < 0 || j >= 8)
                 System.out.println("Place out of range");
             else{
-//                algorithm.move(i, j);
-                sendMessage(socket, "move", position);
+                sendMessage("move", position);
+//                sendMessage(socket, "click", socket.getLocalPort());
 //                drawPiece(i, j);
             }
         }
@@ -229,61 +228,33 @@ public class MainFrame extends JFrame{
         public void mouseExited(MouseEvent e) {}
     }
 
-    class StatusContainer extends JPanel {
-        //Constructor
-        StatusContainer() {
-        }
-    }
-
-    class ScorePanel extends JPanel {
-        ScorePanel() {
-        }
-    }
-
-    class DialogPanel extends JPanel{
-        DialogPanel() {
-        }
-    }
-
-    class ConnectionPanel extends JPanel {
-    }
-
-    private void getMessage(final Socket clientSocket){
+    private void getMessage(){
         new Thread(){
             @Override
             public void run() {
                 try {
-                    bufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
-                    bufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
+                    bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+                    bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
                     String text;
-                    while(true) {
-                        if ((text = bufferedReader.readLine()) != null) {
-                            jsonObject = new JSONObject(text);
-                            if (text.contains("\"show\"")) {
-                                String mapString = jsonObject.get("show").toString();
-                                System.out.println(mapString);
-                                System.out.println("Ok, update");
-                                refreshMap(mapString);
-                            } else if (text.contains("\"message\"")) {
-                                dialogArea.append(jsonObject.get("message").toString() + "\n");
-                            } else if (text.contains("\"score\"")) {
-                                countBlack.setText(jsonObject.get("score").toString().replace("[", "").replace("]", "").split(",")[0]);
-                                countWhite.setText(jsonObject.get("score").toString().replace("[", "").replace("]", "").split(",")[1]);
-                            } else if(text.contains("\"color\"")){
-                                myFace = Integer.parseInt(jsonObject.get("color").toString());
-                                System.out.println(myFace);
-                            }
-                            else
-                                break;
+                    while((text = bufferedReader.readLine()) != null) {
+                        jsonObject = new JSONObject(text);
+                        if (text.contains("\"show\"")) {
+                            String mapString = jsonObject.get("show").toString();
+                            refreshMap(mapString);
+                        } else if (text.contains("\"message\"")) {
+                            dialogArea.append(jsonObject.get("message").toString() + "\n");
+                        } else if (text.contains("\"score\"")) {
+                            countBlack.setText(jsonObject.get("score").toString().replace("[", "").replace("]", "").split(",")[0]);
+                            countWhite.setText(jsonObject.get("score").toString().replace("[", "").replace("]", "").split(",")[1]);
                         }
                         else
-                            break;
+                            System.out.println("Unknown command");
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }finally {
                     try {
-                        clientSocket.close();
+                        socket.close();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -292,25 +263,20 @@ public class MainFrame extends JFrame{
         }.start();
     }
 
-    public void sendMessage(final Socket clientSocket, String key, Object value){
-        new Thread(){
-            @Override
-            public void run() {
-                try {
-                    if(clientSocket.isConnected()) {
-                        jsonObject = new JSONObject();
-                        jsonObject.put(key, value);
-                        bufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
-                        String jsonString = jsonObject.toString();
-                        bufferedWriter.write(jsonString);
-                        bufferedWriter.newLine();
-                        bufferedWriter.flush();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+    public void sendMessage(String key, Object value){
+        try {
+            if(socket.isConnected()) {
+                jsonObject = new JSONObject();
+                jsonObject.put(key, value);
+                bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+                String jsonString = jsonObject.toString();
+                bufferedWriter.write(jsonString);
+                bufferedWriter.write("\r\n");
+                bufferedWriter.flush();
             }
-        }.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public int[][] refreshMap(String jsonString){
@@ -319,7 +285,6 @@ public class MainFrame extends JFrame{
             @Override
             public void run() {
                 String [] stringArray = jsonString.replace("[", "").replace("]", "").split(",");
-
                 for(int y=0; y<8; y++){
                     for(int x=0; x<8; x++){
                         newMap[x][y] = Integer.parseInt(stringArray[y + (x << 3)]);

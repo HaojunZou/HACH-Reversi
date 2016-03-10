@@ -8,8 +8,6 @@ import java.util.*;
 
 public class ReversiServer {
     private static ArrayList<Socket> clients = new ArrayList<Socket>();	//list to save all client socket
-    private	BufferedReader bufferedReader;
-    private	BufferedWriter bufferedWriter;
     private Algorithm algorithm = new Algorithm();
     private JSONObject jsonObject;
 
@@ -41,37 +39,40 @@ public class ReversiServer {
     }
 
     public class ClientThread implements Runnable{
-        Socket clientSocket;
-        public ClientThread(Socket socket){
-            this.clientSocket = socket;
+        Socket socket;
+        public ClientThread(Socket s){
+            this.socket = s;
         }
         @Override
         public void run(){
-            if(clientSocket.isConnected()) {
-                getMessage(clientSocket);
-            }
-            if(clientSocket.isClosed()) {
-                clients.remove(clientSocket);
+            System.out.println(socket.toString());
+            getMessage(socket);
+            if(socket.isClosed()) {
+                clients.remove(socket);
             }
         }
     }
 
-    private void getMessage(final Socket clientSocket){
+    private void getMessage(Socket clientSocket){
         new Thread(){
             @Override
             public void run() {
                 if(clientSocket.isConnected()) {
                     try {
-                        bufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
-                        bufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"));
+                        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
                         String text;
                         while ((text = bufferedReader.readLine()) != null) {
                             jsonObject = new JSONObject(text);
                             if(text.contains("\"move\"")) {
+                                System.out.println(clientSocket.toString() + "want to move");
                                 System.out.println(jsonObject.get("move") + " :: " + jsonObject.get("move").getClass());
-                                algorithm.move(clientSocket,
+                                if(algorithm.move(clientSocket,
                                         Integer.parseInt(jsonObject.get("move").toString().replace("[", "").replace("]", "").split(",")[0]),
-                                        Integer.parseInt(jsonObject.get("move").toString().replace("[", "").replace("]", "").split(",")[1]));
+                                        Integer.parseInt(jsonObject.get("move").toString().replace("[", "").replace("]", "").split(",")[1]))){
+                                    sendMessage(clientSocket, "message", "Good move", "all");
+                                }else{
+                                    sendMessage(clientSocket, "message", "Illegal move", "me");
+                                }
                                 sendMessage(clientSocket, "show", algorithm.getCurrentMap(), "all");
                             } else if(text.contains("\"command\"")) {
                                 System.out.println(jsonObject.get("command"));
@@ -82,11 +83,12 @@ public class ReversiServer {
                                     sendMessage(clientSocket, "show", algorithm.getCurrentMap(), "all");
                                     sendMessage(clientSocket, "score", score, "all");
                                     sendMessage(clientSocket, "message", "Welcome to HC-Reversi", "me");
-                                    algorithm.setUserFace(clientSocket);
-                                    sendMessage(clientSocket, "color", algorithm.getUserFace(clientSocket), "me");
-                                    System.out.println(algorithm.getUserFace(clientSocket));
-                                    System.out.println(clientSocket.toString());
+                                    if(algorithm.setUserFace(clientSocket) == 2){
+                                        sendMessage(clientSocket, "message", "Game started", "all");
+                                    }
                                 }
+                            } else if (text.contains("\"click\"")){
+                                System.out.println(jsonObject.get("click"));
                             }
                             else
                                 break;
@@ -94,9 +96,6 @@ public class ReversiServer {
                         clientSocket.close();
                     } catch (IOException e) {
                         e.printStackTrace();
-                    }
-                    if(clientSocket.isClosed()){
-                        System.out.printf("Client disconnected: %s\n", clientSocket.getRemoteSocketAddress().toString());
                     }
                 }
             }
@@ -113,19 +112,21 @@ public class ReversiServer {
                         BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), "UTF-8"));
                         String jsonString = jsonObject.toString();
                         bufferedWriter.write(jsonString);
-                        bufferedWriter.newLine();
+                        bufferedWriter.write("\r\n");
                         bufferedWriter.flush();
                     }
                 }
             }
-            if(who.equals("me")){
-                jsonObject = new JSONObject();
-                jsonObject.put(key, value);
-                BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-                String jsonString = jsonObject.toString();
-                bufferedWriter.write(jsonString);
-                bufferedWriter.newLine();
-                bufferedWriter.flush();
+            else if(who.equals("me")){
+                if (socket.isConnected()) {
+                    jsonObject = new JSONObject();
+                    jsonObject.put(key, value);
+                    BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+                    String jsonString = jsonObject.toString();
+                    bufferedWriter.write(jsonString);
+                    bufferedWriter.write("\r\n");
+                    bufferedWriter.flush();
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();

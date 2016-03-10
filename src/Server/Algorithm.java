@@ -9,7 +9,8 @@ class Algorithm {
     private static final int WHITE = -1;	//player WHITE
     private static final int AVAILABLE = 2;	//current player available place
     private int[][] piece = new int[8][8];	//main 2d-array to save all pieces
-    private int curPiece = BLACK; // current piece
+    private int currentPlayer = BLACK; // current piece
+    private int nextPlayer = 1;
     private Map<String, Integer> userFaces = new HashMap<>();
 
     Algorithm(){
@@ -23,13 +24,14 @@ class Algorithm {
         piece[4][5] = AVAILABLE;
     }
 
-    void setUserFace(Socket socket){
+    int setUserFace(Socket socket){
         if(userFaces.isEmpty()) {
-            userFaces.put(socket.toString(), BLACK);
+            userFaces.put(socket.toString(), 1);
         }
-        else if(!userFaces.isEmpty()) {
-            userFaces.put(socket.toString(), WHITE);
+        else {
+            userFaces.put(socket.toString(), -1);
         }
+        return userFaces.size();
     }
 
     int getUserFace(Socket socket){
@@ -45,52 +47,53 @@ class Algorithm {
     }
 
     int getCurrentPlayer(){
-        return curPiece;
+        return currentPlayer;
+    }
+
+    int getNexPlayer(){
+        return nextPlayer;
     }
 
     int getCountBlack(){ return countScore(1); }
 
     int getCountWhite(){ return countScore(-1); }
 
-    void move(Socket socket, int i, int j){
-        curPiece = userFaces.get(socket.toString());
-        System.out.println("user " + curPiece + " : clicking");
-        //counter player's score
-        int scoreBlack = countScore(1);
-        int scoreWhite = countScore(-1);
-        //using current piece face and grille position check the location
-        if (checkLocation(curPiece, i, j, true)) {	//if the location is empty
-            piece[i][j] = curPiece;
-            //check if the opponent player can move
-            curPiece *= -1;	//if yes, switch the player
-
-            if(curAvailable(curPiece)){
-                if(curAvailable(-1 * curPiece)){	//check the opponent player should pass
-                    System.out.println("Game Over!");	//if yes, game over
-                    if(scoreBlack > scoreWhite)
-                        System.out.println("Black wins!");
-                    if(scoreBlack < scoreWhite)
-                        System.out.println("White wins!");
-                    else
-                        System.out.println("Draw!");
-                    //TODO: popup game over!
+    boolean move(Socket socket, int i, int j){
+        boolean legal = false;
+        if(nextPlayer != userFaces.get(socket.toString()))
+            legal = false;
+        else if(nextPlayer == userFaces.get(socket.toString())){
+            currentPlayer = userFaces.get(socket.toString());
+            //counter player's score
+            int scoreBlack = countScore(1);
+            int scoreWhite = countScore(-1);
+            //using current piece face and grille position check the location
+            if (checkLocation(currentPlayer, i, j, true)) {    //if the location is empty
+                piece[i][j] = currentPlayer;
+                nextPlayer = currentPlayer * -1;    //if yes, switch the player
+                legal = true;
+                if (curAvailable(nextPlayer)) {  //if no available place
+                    if (curAvailable(currentPlayer)) {    //check the opponent player should pass
+                        System.out.println("Game Over!");    //if yes, game over
+                        if (scoreBlack > scoreWhite)
+                            System.out.println("Black wins!");
+                        if (scoreBlack < scoreWhite)
+                            System.out.println("White wins!");
+                        else
+                            System.out.println("Draw!");
+                        //TODO: popup game over!
+                    } else {    //if not, switch player
+                        System.out.println("Pass!");
+//                        currentPlayer *= -1;
+//                        nextPlayer = currentPlayer * -1;
+                    }
                 }
-                else{	//if not, switch player
-                    System.out.println("Pass!");
-                    curPiece *= -1;
-                }
+                System.out.println("- Score -");
+                System.out.println("Black: " + scoreBlack);
+                System.out.println("White: " + scoreWhite + "\n");
             }
-            System.out.println("- Score -");
-            System.out.println("Black: " + scoreBlack);
-            System.out.println("White: " + scoreWhite + "\n");
         }
-    }
-
-    private void setFace(int i, int j) {
-        if(getCurrentPlayer() == 1)
-            piece[i][j] = BLACK;
-        if(getCurrentPlayer() == -1)
-            piece[i][j] = WHITE;
+        return legal;
     }
 
     /**
