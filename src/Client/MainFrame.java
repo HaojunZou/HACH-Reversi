@@ -13,19 +13,20 @@ public class MainFrame extends JFrame{
     private Socket socket = null;
     private	BufferedReader bufferedReader;
     private	BufferedWriter bufferedWriter;
-    private static final int BLACK = 1;     //player BLACK
-    private static final int WHITE = -1;	//player WHITE
-    private static final Color BACKGROUND_COLOR = new Color(60, 150, 60);	//set background color;
-    private static final Color AVAILABLE_PLACE_COLOR = new Color(50, 50, 50);	//set available places color;
     private int[][] map = new int[8][8];	//main 2d-array to save all pieces
-//    private MessageBoy messageBoy = new MessageBoy();
-    private JSONObject jsonObject;
+    private boolean inGame = false;
+    private int currentPlayer = 1;
     private JPanel panelStatus = new JPanel();
     private GamePanel gamePanel = new GamePanel(map);
 
+    private static final Color BACKGROUND_COLOR = new Color(60, 150, 60);
+    private static final Color AVAILABLE_PLACE_COLOR = new Color(50, 50, 50);
+    private static final Color BLACK_COLOR = new Color(0, 0, 0);
+    private static final Color WHITE_COLOR = new Color(255, 255, 255);
+
     /****** Status Container ******/
     private JPanel scorePanel = new JPanel();
-//    private ConnectionPanel connectionPanel = new ConnectionPanel();
+    //    private ConnectionPanel connectionPanel = new ConnectionPanel();
     private JPanel dialogPanel = new JPanel();
 
     /****** Score Panel ******/
@@ -38,6 +39,7 @@ public class MainFrame extends JFrame{
 
     /****** Dialog Panel ******/
     private JTextArea dialogArea = new JTextArea();
+    private JScrollPane dialogScroll = new JScrollPane(dialogArea);
     private JButton btnReady = new JButton("Ready");
 
     //Constructor
@@ -74,14 +76,13 @@ public class MainFrame extends JFrame{
 
         /****** Dialog Panel ******/
         dialogPanel.setLayout(new BoxLayout(dialogPanel, BoxLayout.Y_AXIS));
-        Dimension dDialog = new Dimension(200, 25);
         Dimension dReady = new Dimension(200, 25);
-        Dimension dText = new Dimension(200, 300);
-        dialogPanel.setPreferredSize(dDialog);
+        Dimension dScroll = new Dimension(200, 275);
+        dialogScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         btnReady.setPreferredSize(dReady);
-        dialogArea.setPreferredSize(dText);
+        dialogScroll.setPreferredSize(dScroll);
         dialogPanel.add(btnReady);
-        dialogPanel.add(dialogArea);
+        dialogPanel.add(dialogScroll);
         dialogArea.setEditable(false);
 
         this.addWindowListener(new WindowAdapter() {
@@ -102,7 +103,7 @@ public class MainFrame extends JFrame{
 
     private void launch(){
         try {
-            socket = new Socket("127.0.0.1", 20000);
+            socket = new Socket("127.0.0.1", 8888);
             btnReady.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
@@ -144,10 +145,10 @@ public class MainFrame extends JFrame{
                 for (int j = 0; j < 8; j++) {
                     if (piece[i][j] != 0) {	//if there's piece in place
                         if (piece[i][j] == 1) {             //BLACK
-                            g.setColor(Color.BLACK);
+                            g.setColor(BLACK_COLOR);
                             g.fillOval(55 + 50 * i, 55 + 50 * j, 40, 40);
                         } else if (piece[i][j] == -1) { 	//WHITE
-                            g.setColor(Color.WHITE);
+                            g.setColor(WHITE_COLOR);
                             g.fillOval(55 + 50 * i, 55 + 50 * j, 40, 40);
                         } else if (piece[i][j] == 2) { 	    //available place
                             g.setColor(AVAILABLE_PLACE_COLOR);
@@ -158,29 +159,22 @@ public class MainFrame extends JFrame{
             }
         }
 
-        private void drawPiece(int i, int j) {
-            Graphics g = this.getGraphics();
-            if (piece[i][j] == BLACK) {
-                g.setColor(Color.BLACK);
-            } else if (piece[i][j] == WHITE) {
-                g.setColor(Color.WHITE);
-            }
-            g.fillOval(55 + 50 * i, 55 + 50 * j, 40, 40);
-        }
-
         @Override
         public void paint(Graphics g) {	//override the paint method
             super.paint(g);
-            //initial player color in the corner
-//            if(algorithm.curPiece() == 1) {
-//                g.setColor(Color.BLACK);
-//                g.fillOval(5, 5, 40, 40);
-//            }
-//            if(algorithm.curPiece() == -1) {
-//                g.setColor(Color.WHITE);
-//                g.fillOval(5, 5, 40, 40);
-//            }
+            //indicator shows current player color in the corner
+            if(inGame) {
+                if (currentPlayer == 1) {
+                    g.setColor(BLACK_COLOR);
+                    g.fillOval(5, 5, 40, 40);
+                }
+                if (currentPlayer == -1) {
+                    g.setColor(WHITE_COLOR);
+                    g.fillOval(5, 5, 40, 40);
+                }
+            }
 
+            g.setColor(BLACK_COLOR);
             //draw horizontal lines
             for (int i = 0; i <= 8; i++) {
                 g.drawLine(50, 50 * i + 50, 450, 50 * i + 50);
@@ -213,9 +207,8 @@ public class MainFrame extends JFrame{
             if (i < 0 || i >= 8 || j < 0 || j >= 8)
                 System.out.println("Place out of range");
             else{
-                sendMessage("move", position);
-//                sendMessage(socket, "click", socket.getLocalPort());
-//                drawPiece(i, j);
+                if(inGame)
+                    sendMessage("move", position);
             }
         }
         @Override
@@ -237,15 +230,25 @@ public class MainFrame extends JFrame{
                     bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
                     String text;
                     while((text = bufferedReader.readLine()) != null) {
-                        jsonObject = new JSONObject(text);
-                        if (text.contains("\"show\"")) {
-                            String mapString = jsonObject.get("show").toString();
+                        JSONObject jsonGet = new JSONObject(text);
+                        if (text.contains("\"show\":")) {
+                            String mapString = jsonGet.get("show").toString();
                             refreshMap(mapString);
-                        } else if (text.contains("\"message\"")) {
-                            dialogArea.append(jsonObject.get("message").toString() + "\n");
-                        } else if (text.contains("\"score\"")) {
-                            countBlack.setText(jsonObject.get("score").toString().replace("[", "").replace("]", "").split(",")[0]);
-                            countWhite.setText(jsonObject.get("score").toString().replace("[", "").replace("]", "").split(",")[1]);
+                        } else if (text.contains("\"message\":")) {
+                            dialogArea.append(jsonGet.get("message").toString() + "\n");
+                        } else if (text.contains("\"score\":")) {
+                            countBlack.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[0]);
+                            countWhite.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[1]);
+                        } else if(text.contains("\"game\":")){
+                            if(jsonGet.get("game").toString().equals("on"))
+                                inGame = true;
+                            else if(jsonGet.get("game").toString().equals("off"))
+                                inGame = false;
+                        } else if(text.contains("\"current\":")){
+                            if (jsonGet.get("current").toString().equals("1"))
+                                currentPlayer = 1;
+                            else if (jsonGet.get("current").toString().equals("-1"))
+                                currentPlayer = -1;
                         }
                         else
                             System.out.println("Unknown command");
@@ -266,10 +269,10 @@ public class MainFrame extends JFrame{
     public void sendMessage(String key, Object value){
         try {
             if(socket.isConnected()) {
-                jsonObject = new JSONObject();
-                jsonObject.put(key, value);
+                JSONObject jsonSend = new JSONObject();
+                jsonSend.put(key, value);
                 bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-                String jsonString = jsonObject.toString();
+                String jsonString = jsonSend.toString();
                 bufferedWriter.write(jsonString);
                 bufferedWriter.write("\r\n");
                 bufferedWriter.flush();
@@ -294,7 +297,6 @@ public class MainFrame extends JFrame{
                 GamePanel gamePanel = new GamePanel(newMap);
                 MainFrame.this.add("Center", gamePanel);
                 gamePanel.updateUI();
-                System.out.println(Arrays.deepToString(newMap));
             }
         }.start();
         return newMap;

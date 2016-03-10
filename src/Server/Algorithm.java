@@ -1,17 +1,12 @@
 package Server;
 
-import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
-
 class Algorithm {
     private static final int BLACK = 1;     //player BLACK
     private static final int WHITE = -1;	//player WHITE
     private static final int AVAILABLE = 2;	//current player available place
     private int[][] piece = new int[8][8];	//main 2d-array to save all pieces
-    private int currentPlayer = BLACK; // current piece
-    private int nextPlayer = 1;
-    private Map<String, Integer> userFaces = new HashMap<>();
+    private int currentPlayer = 1; // current piece
+    private boolean legalMove = false;  //if the current move is legal
 
     Algorithm(){
         piece[3][3] = WHITE;
@@ -24,24 +19,6 @@ class Algorithm {
         piece[4][5] = AVAILABLE;
     }
 
-    int setUserFace(Socket socket){
-        if(userFaces.isEmpty()) {
-            userFaces.put(socket.toString(), 1);
-        }
-        else {
-            userFaces.put(socket.toString(), -1);
-        }
-        return userFaces.size();
-    }
-
-    int getUserFace(Socket socket){
-        return userFaces.get(socket.toString());
-    }
-
-    void removeUserFace(Socket socket){
-        userFaces.remove(socket.toString());
-    }
-
     int[][] getCurrentMap(){
         return piece;
     }
@@ -50,58 +27,65 @@ class Algorithm {
         return currentPlayer;
     }
 
-    int getNexPlayer(){
-        return nextPlayer;
-    }
-
     int getCountBlack(){ return countScore(1); }
 
     int getCountWhite(){ return countScore(-1); }
 
-    boolean move(Socket socket, int i, int j){
-        boolean legal = false;
-        if(nextPlayer != userFaces.get(socket.toString()))
-            legal = false;
-        else if(nextPlayer == userFaces.get(socket.toString())){
-            currentPlayer = userFaces.get(socket.toString());
-            //counter player's score
-            int scoreBlack = countScore(1);
-            int scoreWhite = countScore(-1);
-            //using current piece face and grille position check the location
-            if (checkLocation(currentPlayer, i, j, true)) {    //if the location is empty
-                piece[i][j] = currentPlayer;
-                nextPlayer = currentPlayer * -1;    //if yes, switch the player
-                legal = true;
-                if (curAvailable(nextPlayer)) {  //if no available place
-                    if (curAvailable(currentPlayer)) {    //check the opponent player should pass
-                        System.out.println("Game Over!");    //if yes, game over
-                        if (scoreBlack > scoreWhite)
-                            System.out.println("Black wins!");
-                        if (scoreBlack < scoreWhite)
-                            System.out.println("White wins!");
-                        else
-                            System.out.println("Draw!");
-                        //TODO: popup game over!
-                    } else {    //if not, switch player
-                        System.out.println("Pass!");
-//                        currentPlayer *= -1;
-//                        nextPlayer = currentPlayer * -1;
-                    }
+    boolean checkLegal() { return legalMove; }
+
+    //counter the score
+    private int countScore(int cur){
+        int score = 0;
+        for(int xe=0; xe<8; xe++){
+            for(int ye=0; ye<8; ye++){
+                if(piece[xe][ye] == cur){
+                    score++;
                 }
-                System.out.println("- Score -");
-                System.out.println("Black: " + scoreBlack);
-                System.out.println("White: " + scoreWhite + "\n");
             }
         }
-        return legal;
+        return score;
+    }
+
+    void move(int x, int y){
+        //counter player's score
+        int scoreBlack = countScore(1);
+        int scoreWhite = countScore(-1);
+        //using current piece face and grille position check the location
+        if (checkLocation(currentPlayer, x, y, true)) {    //if the location is ok
+//            if(piece[x][y] == AVAILABLE)
+//                legalMove = true;
+            piece[x][y] = currentPlayer;
+            currentPlayer *= -1;    //switch the player
+            if (shouldPass(currentPlayer)) {  //if the opponent player has not available place
+                if (shouldPass(-currentPlayer)) {    //check self should pass
+                    System.out.println("Game Over!");    //if yes, game over
+                    if (scoreBlack > scoreWhite)
+                        System.out.println("Black wins!");
+                    if (scoreBlack < scoreWhite)
+                        System.out.println("White wins!");
+                    else
+                        System.out.println("Draw!");
+                    currentPlayer = 64;
+                    //TODO: popup game over!
+                } else {    //if not, switch player
+                    System.out.println("Pass!");
+                    currentPlayer *= -1;
+                }
+            }
+            System.out.println("- Score -");
+            System.out.println("Black: " + scoreBlack);
+            System.out.println("White: " + scoreWhite + "\n");
+        }
+//        else
+//            legalMove = false;
     }
 
     /**
      * draw available place
      * @param cur: player face
-     * @return true if player should pass
+     * @return true if current player has no available place
      */
-    private boolean curAvailable(int cur){
+    private boolean shouldPass(int cur){
         //restore all available places from last round to empty
         for(int xe=0; xe<8; xe++){
             for(int ye=0; ye<8; ye++){
@@ -124,19 +108,6 @@ class Algorithm {
         }
         //if the current player has not available places, then return true;
         return curAva == 0;
-    }
-
-    //counter the score
-    private int countScore(int cur){
-        int score = 0;
-        for(int xe=0; xe<8; xe++){
-            for(int ye=0; ye<8; ye++){
-                if(piece[xe][ye] == cur){
-                    score++;
-                }
-            }
-        }
-        return score;
     }
 
     private boolean checkLocation(int cur, int i, int j, boolean execute) {
