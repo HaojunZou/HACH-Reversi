@@ -8,7 +8,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
 
-public class MainFrame extends JFrame{
+public class MainFrame extends JFrame implements IFrame{
     private Socket socket = null;
     private	BufferedReader bufferedReader;
     private	BufferedWriter bufferedWriter;
@@ -218,7 +218,8 @@ public class MainFrame extends JFrame{
         public void mouseExited(MouseEvent e) {}
     }
 
-    private void getMessage(){
+    @Override
+    public void getMessage(){
         new Thread(){
             @Override
             public void run() {
@@ -263,7 +264,8 @@ public class MainFrame extends JFrame{
         }.start();
     }
 
-    private void sendMessage(String key, Object value){
+    @Override
+    public void sendMessage(String key, Object value){
         try {
             if(socket.isConnected()) {
                 JSONObject jsonSend = new JSONObject();

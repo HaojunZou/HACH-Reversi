@@ -40,7 +40,7 @@ public class ReversiServer {
         }
     }
 
-    private class ClientThread implements Runnable{
+    private class ClientThread implements Runnable, IReversi{
         Socket socket;
         Player player = null;
         boolean inGame = false;
@@ -57,64 +57,7 @@ public class ReversiServer {
                 gameQueue.remove(socket);
             }
             sendMessage("message", "--- Welcome to HC-Reversi ---", "me");
-            if (socket.isConnected()) {
-                try {
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
-                    String text;
-                    while ((text = bufferedReader.readLine()) != null && !inGame) {
-                        JSONObject jsonGet = new JSONObject(text);
-                        if(text.contains("\"command\":")){
-                            if(jsonGet.get("command").equals("ready")){
-                                if(waitingQueue.contains(socket)) {
-                                    if(gameQueue.size() < 2){   //if game queue has less than 2 player
-                                        gameQueue.add(socket);
-                                        waitingQueue.remove(socket);
-                                        System.out.println(gameQueue.size());
-                                        player = new Player();
-                                        player.setSocket(socket);
-                                        //if this player is first one in queue, get black, otherwise get white
-                                        player.setColor((gameQueue.size() == 1) ? 1 : -1);
-                                        if(gameQueue.size() == 1) {
-                                            sendMessage("message", "You play as black\nWaiting for white...", "me");
-                                            break;
-                                        }
-                                        if(gameQueue.size() == 2){  //if game queue has two players, start a game
-                                            inGame = true;
-                                            initGame(); //initialize game map
-                                            break;
-                                        }
-                                    }
-                                    else{
-                                        sendMessage("game", "off", "all");
-                                        //TODO: popup <there's a game running, waiting...>
-                                    }
-                                }
-                                else
-                                    System.out.println("Player disappeared from waiting queue!!!");
-                            }
-                            else if(jsonGet.get("command").toString().equals("surrender")){
-                                inGame = false;
-                                waitingQueue.add(socket);
-                                gameQueue.remove(socket);
-                                sendMessage("game", "off", "all");
-                                //TODO: popup <Are you sure to surrender?>
-                            }else if(jsonGet.get("command").toString().equals("notReady")){
-                                inGame = false;
-                                waitingQueue.add(socket);
-                                gameQueue.remove(socket);
-                            }
-                            else
-                                System.out.println("Unknown command");
-                        }
-                        else
-                            break;
-                    }
-                    new Thread(new Game()).start(); //new thread for a game
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }finally {
-                }
-            }
+            getMessage();
         }
 
         class Game implements Runnable{
@@ -194,7 +137,70 @@ public class ReversiServer {
             return letter;
         }
 
-        private void sendMessage(String key, Object value, String who){
+        @Override
+        public void getMessage(){
+            if (socket.isConnected()) {
+                try {
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+                    String text;
+                    while ((text = bufferedReader.readLine()) != null && !inGame) {
+                        JSONObject jsonGet = new JSONObject(text);
+                        if(text.contains("\"command\":")){
+                            if(jsonGet.get("command").equals("ready")){
+                                if(waitingQueue.contains(socket)) {
+                                    if(gameQueue.size() < 2){   //if game queue has less than 2 player
+                                        gameQueue.add(socket);
+                                        waitingQueue.remove(socket);
+                                        System.out.println(gameQueue.size());
+                                        player = new Player();
+                                        player.setSocket(socket);
+                                        //if this player is first one in queue, get black, otherwise get white
+                                        player.setColor((gameQueue.size() == 1) ? 1 : -1);
+                                        if(gameQueue.size() == 1) {
+                                            sendMessage("message", "You play as black\nWaiting for white...", "me");
+                                            break;
+                                        }
+                                        if(gameQueue.size() == 2){  //if game queue has two players, start a game
+                                            inGame = true;
+                                            initGame(); //initialize game map
+                                            break;
+                                        }
+                                    }
+                                    else{
+                                        sendMessage("game", "off", "all");
+                                        //TODO: popup <there's a game running, waiting...>
+                                    }
+                                }
+                                else
+                                    System.out.println("Player disappeared from waiting queue!!!");
+                            }
+                            else if(jsonGet.get("command").toString().equals("surrender")){
+                                inGame = false;
+                                waitingQueue.add(socket);
+                                gameQueue.remove(socket);
+                                sendMessage("game", "off", "all");
+                                //TODO: popup <Are you sure to surrender?>
+                            }else if(jsonGet.get("command").toString().equals("notReady")){
+                                inGame = false;
+                                waitingQueue.add(socket);
+                                gameQueue.remove(socket);
+                            }
+                            else
+                                System.out.println("Unknown command");
+                        }
+                        else
+                            break;
+                    }
+                    new Thread(new Game()).start(); //new thread for a game
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }finally {
+                }
+            }
+        }
+
+        @Override
+        public void sendMessage(String key, Object value, String who){
             try {
                 if(who.equals("all")) {
                     for (Socket socket : gameQueue) {
