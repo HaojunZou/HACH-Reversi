@@ -72,13 +72,13 @@ public class ReversiServer {
                                 if (player.getColor() == algorithm.getCurrentPlayer()) {
                                     int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
                                     int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
-                                    //                                    if(algorithm.checkLegal()) {
+                                    //if(algorithm.checkLegal()) {
                                     sendMessage(player.getSocket(), "message",
                                             (algorithm.getCurrentPlayer() == 1) ?
                                                     ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
                                                     : ("White " + "[" + getX(x) + "," + (y + 1) + "]"),
                                             "all");
-                                    //                                    }
+                                    //}
                                     algorithm.move(x, y);   //current player might change after this move
                                     sendMessage(player.getSocket(), "current", algorithm.getCurrentPlayer(), "all");
                                     sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
