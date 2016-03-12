@@ -50,75 +50,151 @@ public class ReversiServer {
         @Override
         public void run(){
             //TODO: login function, return a player socket, user "player.setSocket = socket"  to set current player socket
-            sendMessage(player.getSocket(), "message", "--- Welcome to HC-Reversi ---", "me");
-            if(player.getSocket().isConnected())
-                getMessage();
+            getMessage();
         }
 
-        class Game implements Runnable{
-            Game(){
-            }
-            @Override
-            public void run() {
-                try {
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream(), "UTF-8"));
-                    String text;
-                    while ((text = bufferedReader.readLine()) != null) {
-                        JSONObject jsonGet = new JSONObject(text);
-                        if (text.contains("\"move\":")) {
-                            if (algorithm.getCurrentPlayer() == 64) {
-                                //TODO: popup game over message
-                            } else {
-                                if (player.getColor() == algorithm.getCurrentPlayer()) {
-                                    int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
-                                    int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
-                                    //if(algorithm.checkLegal()) {
-                                    sendMessage(player.getSocket(), "message",
-                                            (algorithm.getCurrentPlayer() == 1) ?
-                                                    ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
-                                                    : ("White " + "[" + getX(x) + "," + (y + 1) + "]"),
-                                            "all");
-                                    //}
-                                    algorithm.move(x, y);   //current player might change after this move
-                                    sendMessage(player.getSocket(), "current", algorithm.getCurrentPlayer(), "all");
-                                    sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
-                                    sendMessage(player.getSocket(), "score", getScore(), "all");
-                                } else {
-                                    //TODO: popup pass massage;
-                                }
-                            }
-                        } else
-                            System.out.println("Unknown command");
+        @Override
+        public void getMessage(){
+            try {
+                player.getSocket().setSoTimeout(1200000);
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream(), "UTF-8"));
+                sendMessage(player.getSocket(), "message", "--- Welcome to HC-Reversi ---", "me");
+                String command;
+                while ((command = bufferedReader.readLine()) != null) {
+                    Command(command);
+                    JSONObject jsonGet = new JSONObject(command);
+                    if(command.contains("\"quit\":")){
+                        if(jsonGet.get("quit").equals("yes"))
+                            break;
                     }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }finally {
+                try {
+                    player.getSocket().shutdownInput();
+                    player.getSocket().close();
+                    waitingQueue.remove(player);
                 } catch (IOException e) {
                     e.printStackTrace();
-                } finally {
+                }
+            }
+            System.out.println("Client " + player.getSocket().toString() + " Disconnected");
+        }
+
+        @Override
+        public void sendMessage(Socket socket, String key, Object value, String who){
+            BufferedWriter bufferedWriter;
+            try {
+                if(who.equals("all")) {
                     for (Player p : gameQueue) {
-                        p.setInGame(false);
-                        if (p.getSocket() != null) {
-                            try {
-                                p.getSocket().close();
-                                waitingQueue.remove(p);
-                                gameQueue.remove(p);
-                                System.out.println("Player :" + p.getSocket().toString() + " disconnected");
-                                System.out.println("Waiting user: " + waitingQueue.size());
-                                System.out.println("In game user: " + gameQueue.size());
-                            } catch (IOException e) {
-                                e.printStackTrace();
+                        if (p.getSocket().isConnected()) {
+                            JSONObject jsonSend = new JSONObject();
+                            jsonSend.put(key, value);
+                            bufferedWriter = new BufferedWriter(new OutputStreamWriter(p.getSocket().getOutputStream(), "UTF-8"));
+                            String jsonString = jsonSend.toString();
+                            bufferedWriter.write(jsonString);
+                            bufferedWriter.write("\r\n");
+                            bufferedWriter.flush();
+                        }
+                    }
+                }
+                else if(who.equals("me")){
+                    if (socket.isConnected()) {
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put(key, value);
+                        bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+                        String jsonString = jsonObject.toString();
+                        bufferedWriter.write(jsonString);
+                        bufferedWriter.write("\r\n");
+                        bufferedWriter.flush();
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void Command(String cmd) {
+            JSONObject jsonGet = new JSONObject(cmd);
+            try {
+                if (cmd.contains("\"command\":")) { //request user name
+                    if(jsonGet.get("command").equals("ready")){
+                        if(gameQueue.size() >= 2){   //if game queue has 2 player, tell the new player to wait
+                            sendMessage(player.getSocket(), "wait", "yes", "me");
+                            sendMessage(player.getSocket(), "message", "There's a game running, please wait...", "me");
+                            //TODO: popup <there's a game running, waiting...>
+                        }
+                        else {
+                            gameQueue.add(player);
+                            waitingQueue.remove(player);
+                            if(gameQueue.size() == 2)  //if game queue has two players, start a game
+                                gameStart();
+                        }
+                    } else if(jsonGet.get("command").equals("notReady")){
+                        waitingQueue.add(player);
+                        gameQueue.remove(player);
+                    } else if(jsonGet.get("command").toString().equals("surrender")){
+                        //TODO: popup <Are you sure to surrender?>
+                        sendMessage(player.getSocket(), "game", "off", "all");
+                        //no matter who has more piece in the map, surrender will affect the opponent wins
+                        sendMessage(player.getSocket(), "message", (player.getColor()==1) ? "White wins" : "Black wins", "all");
+                        waitingQueue.add(gameQueue.getFirst());
+                        waitingQueue.add(gameQueue.getLast());
+                        gameQueue.clear();
+                        algorithm = new Algorithm();
+                    }
+                } else if (cmd.contains("\"move\":")) {
+                    if (algorithm.getCurrentPlayer() == 64) {
+                        //TODO: popup game over message
+                    } else {
+                        if (player.getColor() == algorithm.getCurrentPlayer()) {
+                            int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
+                            int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
+                            //if(algorithm.checkLegal()) {
+                            sendMessage(player.getSocket(), "message",
+                                    (algorithm.getCurrentPlayer() == 1) ?
+                                            ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
+                                            : ("White " + "[" + getX(x) + "," + (y + 1) + "]"),
+                                    "all");
+                            //}
+                            if(!algorithm.move(x, y)) {   //current player might change after this move
+                                sendMessage(player.getSocket(), "current", algorithm.getCurrentPlayer(), "all");
+                                sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
+                                sendMessage(player.getSocket(), "score", getScore(), "all");
+                            }
+                            else{
+                                sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
+                                sendMessage(player.getSocket(), "score", getScore(), "all");
+                                if((getScore()[0]) > (getScore()[1]))
+                                    sendMessage(player.getSocket(), "message", "Black wins!", "all");
+                                else if((getScore()[0]) < (getScore()[1]))
+                                    sendMessage(player.getSocket(), "message", "White wins!", "all");
+                                else
+                                    sendMessage(player.getSocket(), "message", "Draw!", "all");
+                                sendMessage(player.getSocket(), "game", "off", "all");
+                                gameQueue.clear();
+                                sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
                             }
                         }
                     }
                 }
+            }catch (Exception e) {
             }
         }
 
-        private void initGame(){
-            sendMessage(player.getSocket(), "game", "on", "all");
-            sendMessage(player.getSocket(), "message", "Game Started", "all");
-            sendMessage(player.getSocket(), "message", "You play as white", "me");
-            sendMessage(player.getSocket(), "current", algorithm.getCurrentPlayer(), "all");
-            sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
-            sendMessage(player.getSocket(), "score", getScore(), "all");
+        private void gameStart(){
+            gameQueue.getFirst().setColor(1);   //black player
+            gameQueue.getFirst().setInGame(true);   //set player status
+            sendMessage(gameQueue.getFirst().getSocket(), "message", "Game started!\nYou play as black", "me");
+            gameQueue.getLast().setColor(-1);   //white player
+            gameQueue.getLast().setInGame(true);
+            sendMessage(gameQueue.getLast().getSocket(), "message", "Game started!\nYou play as white", "me");
+            sendMessage(player.getSocket(), "game", "on", "all");   //tell client change status
+            sendMessage(player.getSocket(), "current", algorithm.getCurrentPlayer(), "all");    //send current player move
+            sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");  //send map
+            sendMessage(player.getSocket(), "score", getScore(), "all");    //send current score
+            new Thread(new Game()).start(); //new thread for a game
         }
 
         private int[] getScore(){
@@ -144,98 +220,51 @@ public class ReversiServer {
             return letter;
         }
 
-        @Override
-        public void getMessage(){
-            try {
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream(), "UTF-8"));
-                String text;
-                while ((text = bufferedReader.readLine()) != null && !player.isInGame()) {
-                    JSONObject jsonGet = new JSONObject(text);
-                    if(text.contains("\"command\":")){
-                        if(jsonGet.get("command").equals("ready")){
-                            if(waitingQueue.contains(player)) {
-                                if(gameQueue.size() < 2){   //if game queue has less than 2 player
-                                    //if this player is first one in queue, get black, otherwise get white
-                                    player.setColor((gameQueue.size() == 0) ? 1 : -1);
-                                    gameQueue.add(player);
-                                    waitingQueue.remove(player);
-                                    if(gameQueue.size() == 1) {
-                                        sendMessage(player.getSocket(), "message", "You play as black\nWaiting for white...", "me");
-                                        break;
-                                    }
-                                    if(gameQueue.size() == 2){  //if game queue has two players, start a game
-                                        for(Player p : gameQueue)
-                                            p.setInGame(true);
-                                        initGame(); //initialize game map
-                                        break;
-                                    }
-                                }
-                                else{
-                                    sendMessage(player.getSocket(), "game", "off", "all");
-                                    //TODO: popup <there's a game running, waiting...>
-                                }
-                            }
-                            else
-                                System.out.println("Player disappeared from waiting queue!!!");
-                        }
-                        else if(jsonGet.get("command").toString().equals("surrender")){
-                            //TODO: popup <Are you sure to surrender?>
-                            for(Player p : gameQueue){
-                                p.setInGame(false);
-                                waitingQueue.add(p);
-                                gameQueue.remove(p);
-                            }
-                            sendMessage(player.getSocket(), "game", "off", "all");
-                        }else if(jsonGet.get("command").toString().equals("notReady")){
-                            for(Player p : gameQueue){
-                                p.setInGame(false);
-                                waitingQueue.add(p);
-                                gameQueue.remove(p);
-                            }
-                        }
-                        else
-                            System.out.println("Unknown command");
-                    }
-                    else
-                        break;
-                }
-                new Thread(new Game()).start(); //new thread for a game
-            } catch (IOException e) {
-                e.printStackTrace();
-            }finally {
+        //Game thread
+        class Game implements Runnable{
+            Game(){
             }
-        }
-
-        @Override
-        public void sendMessage(Socket socket, String key, Object value, String who){
-            try {
-                if(who.equals("all")) {
-                    for (Player p : gameQueue) {
-                        if (p.getSocket().isConnected()) {
-                            JSONObject jsonSend = new JSONObject();
-                            jsonSend.put(key, value);
-                            BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(p.getSocket().getOutputStream(), "UTF-8"));
-                            String jsonString = jsonSend.toString();
-                            bufferedWriter.write(jsonString);
-                            bufferedWriter.write("\r\n");
-                            bufferedWriter.flush();
+            @Override
+            public void run() {
+                try {
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream(), "UTF-8"));
+                    String command;
+                    while ((command = bufferedReader.readLine()) != null) {
+                        if(gameQueue.size() == 2)
+                            Command(command);
+                        else{
+                            if(gameQueue.size() != 0)
+                                sendMessage(gameQueue.getFirst().getSocket(), "message", "Your opponent has left the game!", "me");
+                            break;
                         }
                     }
-                }
-                else if(who.equals("me")){
-                    if (socket.isConnected()) {
-                        JSONObject jsonObject = new JSONObject();
-                        jsonObject.put(key, value);
-                        BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-                        String jsonString = jsonObject.toString();
-                        bufferedWriter.write(jsonString);
-                        bufferedWriter.write("\r\n");
-                        bufferedWriter.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if(gameQueue.size() == 2){
+                        if(gameQueue.getFirst().getSocket().isConnected()) {
+                            gameQueue.getFirst().setInGame(false);
+                            waitingQueue.add(gameQueue.getFirst());
+                        }
+                        if(gameQueue.getLast().getSocket().isConnected()) {
+                            gameQueue.getLast().setInGame(false);
+                            waitingQueue.add(gameQueue.getLast());
+                        }
+                        gameQueue.clear();
+                    } else if(gameQueue.size() == 1){
+                        if(gameQueue.getFirst().getSocket().isConnected()) {
+                            gameQueue.getFirst().setInGame(false);
+                            waitingQueue.add(gameQueue.getFirst());
+                        }
+                        gameQueue.clear();
+                    } else{
+                        gameQueue.clear();
                     }
+                    System.out.println("Waiting user: " + waitingQueue.size());
+                    System.out.println("In game user: " + gameQueue.size());
+                    algorithm = new Algorithm();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
-        }
-    }
+        }   //end of Game thread
+    }   //end of Client thread
 }

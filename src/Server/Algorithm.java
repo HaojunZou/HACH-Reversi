@@ -46,7 +46,7 @@ class Algorithm {
         return score;
     }
 
-    void move(int x, int y){
+    boolean move(int x, int y){
         //counter player's score
         int scoreBlack = countScore(1);
         int scoreWhite = countScore(-1);
@@ -58,14 +58,15 @@ class Algorithm {
             currentPlayer *= -1;    //switch the player
             if (shouldPass(currentPlayer)) {  //if the opponent player has not available place
                 if (shouldPass(-currentPlayer)) {    //check self should pass
-                    System.out.println("Game Over!");    //if yes, game over
-                    if (scoreBlack > scoreWhite)
-                        System.out.println("Black wins!");
-                    if (scoreBlack < scoreWhite)
-                        System.out.println("White wins!");
-                    else
-                        System.out.println("Draw!");
                     currentPlayer = 64;
+                    return true;
+//                    System.out.println("Game Over!");    //if yes, game over
+//                    if (scoreBlack > scoreWhite)
+//                        System.out.println("Black wins!");
+//                    if (scoreBlack < scoreWhite)
+//                        System.out.println("White wins!");
+//                    else
+//                        System.out.println("Draw!");
                     //TODO: popup game over!
                 } else {    //if not, switch player
                     System.out.println("Pass!");
@@ -78,6 +79,7 @@ class Algorithm {
         }
 //        else
 //            legalMove = false;
+        return false;
     }
 
     /**

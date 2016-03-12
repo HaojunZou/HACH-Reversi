@@ -10,10 +10,9 @@ import java.net.Socket;
 
 public class MainFrame extends JFrame implements IFrame{
     private Socket socket = null;
-    private	BufferedReader bufferedReader;
-    private	BufferedWriter bufferedWriter;
     private int[][] map = new int[8][8];	//main 2d-array to save all pieces
     private boolean inGame = false;
+    private boolean wait = false;
     private int currentPlayer = 1;
     private GamePanel gamePanel = new GamePanel(map);
 
@@ -31,6 +30,8 @@ public class MainFrame extends JFrame implements IFrame{
     /****** Dialog Panel ******/
     private JTextArea dialogArea = new JTextArea();
     private JButton btnReady = new JButton("Ready");
+    private JButton btnNotReady = new JButton("Not Ready");
+    private JButton btnSurrender = new JButton("Surrender");
 
     //Constructor
     private MainFrame() {
@@ -73,53 +74,175 @@ public class MainFrame extends JFrame implements IFrame{
         /****** Dialog Panel ******/
         dialogPanel.setLayout(new BoxLayout(dialogPanel, BoxLayout.Y_AXIS));
         Dimension dReady = new Dimension(200, 25);
+        Dimension dNotReady = new Dimension(200, 25);
+        Dimension dSurrender = new Dimension(200, 25);
         Dimension dScroll = new Dimension(200, 275);
         JScrollPane dialogScroll = new JScrollPane(dialogArea);
         dialogScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         btnReady.setPreferredSize(dReady);
+        btnNotReady.setPreferredSize(dNotReady);
+        btnSurrender.setPreferredSize(dSurrender);
+        btnNotReady.setVisible(false);
+        btnSurrender.setVisible(false);
         dialogScroll.setPreferredSize(dScroll);
         dialogPanel.add(btnReady);
+        dialogPanel.add(btnNotReady);
+        dialogPanel.add(btnSurrender);
         dialogPanel.add(dialogScroll);
         dialogArea.setEditable(false);
 
         this.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
                 try {
+                    sendMessage("quit", "yes");
                     socket.close();
-                    bufferedReader.close();
-                    bufferedWriter.close();
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
                 System.exit(0);
-                //TODO: shutdown socket
             }
         });
         launch();
     }
 
+    //main method access
+    public static void main(String[] args) {
+        new MainFrame();
+    }
+
     private void launch(){
         try {
             socket = new Socket("127.0.0.1", 8888);
+            getMessage();
             btnReady.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
-                    if(btnReady.isEnabled()) {
-                        sendMessage("command", "ready");
+                    sendMessage("command", "ready");
+                    if (wait) {
+                        btnReady.setVisible(true);
+                        btnNotReady.setVisible(false);
+                    } else {
+                        if(inGame) {
+                            btnReady.setVisible(false);
+                            btnNotReady.setVisible(false);
+                        }else{
+                            btnReady.setVisible(false);
+                            btnNotReady.setVisible(true);
+                        }
                     }
-                    btnReady.setEnabled(false);
                 }
             });
-            getMessage();
+            btnNotReady.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    super.mouseClicked(e);
+                    sendMessage("command", "notReady");
+                    btnNotReady.setVisible(false);
+                    btnReady.setVisible(true);
+                }
+            });
+            btnSurrender.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    super.mouseClicked(e);
+                    sendMessage("command", "surrender");
+                    btnSurrender.setVisible(false);
+                    btnReady.setVisible(true);
+                }
+            });
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    //main method access
-    public static void main(String[] args) {
-        new MainFrame();
+    @Override
+    public void getMessage(){
+        new Thread(){
+            @Override
+            public void run() {
+                BufferedReader bufferedReader;
+                try {
+                    bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+                    String command;
+                    while ((command = bufferedReader.readLine()) != null) {
+                        Command(command);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+    }
+
+    @Override
+    public void sendMessage(String key, Object value){
+        BufferedWriter bufferedWriter;
+        try {
+            if(socket.isConnected()) {
+                JSONObject jsonSend = new JSONObject();
+                jsonSend.put(key, value);
+                bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+                String jsonString = jsonSend.toString();
+                bufferedWriter.write(jsonString);
+                bufferedWriter.write("\r\n");
+                bufferedWriter.flush();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void Command(String cmd) {
+        JSONObject jsonGet = new JSONObject(cmd);
+        try {
+            if (cmd.contains("\"show\":")) {
+                String mapString = jsonGet.get("show").toString();
+                refreshMap(mapString);
+            } else if (cmd.contains("\"wait\":")) {
+                if(jsonGet.get("wait").toString().equals("yes"))
+                    wait = true;
+            }
+            else if (cmd.contains("\"message\":")) {
+                dialogArea.append(jsonGet.get("message").toString() + "\n");
+            } else if (cmd.contains("\"score\":")) {
+                countBlack.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[0]);
+                countWhite.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[1]);
+            } else if(cmd.contains("\"game\":")){
+                if(jsonGet.get("game").toString().equals("on")) {
+                    inGame = true;
+                    btnSurrender.setVisible(true);
+                    btnReady.setVisible(false);
+                    btnNotReady.setVisible(false);
+                }
+                if(jsonGet.get("game").toString().equals("off")) {
+                    inGame = false;
+                    btnReady.setVisible(true);
+                    btnSurrender.setVisible(false);
+                }
+            } else if(cmd.contains("\"current\":")){
+                if (jsonGet.get("current").toString().equals("1"))
+                    currentPlayer = 1;
+                else if (jsonGet.get("current").toString().equals("-1"))
+                    currentPlayer = -1;
+            }
+        }catch (Exception e){
+        }
+    }
+
+    private int[][] refreshMap(String jsonString){
+        int[][] newMap = new int [8][8];
+        String [] stringArray = jsonString.replace("[", "").replace("]", "").split(",");
+        for(int y=0; y<8; y++){
+            for(int x=0; x<8; x++){
+                newMap[x][y] = Integer.parseInt(stringArray[y + (x << 3)]);
+            }
+        }
+        MainFrame.this.remove(gamePanel);
+        GamePanel gamePanel = new GamePanel(newMap);
+        MainFrame.this.add("Center", gamePanel);
+        gamePanel.updateUI();
+        return newMap;
     }
 
     private class GamePanel extends JPanel implements MouseListener{
@@ -218,86 +341,4 @@ public class MainFrame extends JFrame implements IFrame{
         public void mouseExited(MouseEvent e) {}
     }
 
-    @Override
-    public void getMessage(){
-        new Thread(){
-            @Override
-            public void run() {
-                try {
-                    bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
-                    bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-                    String text;
-                    while((text = bufferedReader.readLine()) != null) {
-                        JSONObject jsonGet = new JSONObject(text);
-                        if (text.contains("\"show\":")) {
-                            String mapString = jsonGet.get("show").toString();
-                            refreshMap(mapString);
-                        } else if (text.contains("\"message\":")) {
-                            dialogArea.append(jsonGet.get("message").toString() + "\n");
-                        } else if (text.contains("\"score\":")) {
-                            countBlack.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[0]);
-                            countWhite.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[1]);
-                        } else if(text.contains("\"game\":")){
-                            if(jsonGet.get("game").toString().equals("on"))
-                                inGame = true;
-                            else if(jsonGet.get("game").toString().equals("off"))
-                                inGame = false;
-                        } else if(text.contains("\"current\":")){
-                            if (jsonGet.get("current").toString().equals("1"))
-                                currentPlayer = 1;
-                            else if (jsonGet.get("current").toString().equals("-1"))
-                                currentPlayer = -1;
-                        }
-                        else
-                            System.out.println("Unknown command");
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }finally {
-                    try {
-                        socket.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }.start();
-    }
-
-    @Override
-    public void sendMessage(String key, Object value){
-        try {
-            if(socket.isConnected()) {
-                JSONObject jsonSend = new JSONObject();
-                jsonSend.put(key, value);
-                bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-                String jsonString = jsonSend.toString();
-                bufferedWriter.write(jsonString);
-                bufferedWriter.write("\r\n");
-                bufferedWriter.flush();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private int[][] refreshMap(String jsonString){
-        int[][] newMap = new int [8][8];
-        new Thread(){
-            @Override
-            public void run() {
-                String [] stringArray = jsonString.replace("[", "").replace("]", "").split(",");
-                for(int y=0; y<8; y++){
-                    for(int x=0; x<8; x++){
-                        newMap[x][y] = Integer.parseInt(stringArray[y + (x << 3)]);
-                    }
-                }
-                MainFrame.this.remove(gamePanel);
-                GamePanel gamePanel = new GamePanel(newMap);
-                MainFrame.this.add("Center", gamePanel);
-                gamePanel.updateUI();
-            }
-        }.start();
-        return newMap;
-    }
 }
