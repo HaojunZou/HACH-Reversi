@@ -67,12 +67,13 @@ public class ReversiServer {
                         if(jsonGet.get("quit").equals("yes")){
                             if(player.isInGame()){
                                 gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
-                                    sendMessage(p.getSocket(), "message", "Your opponent left the game", "all");
+                                    sendMessage(p.getSocket(), "message", "Your opponent left the game", "me");
                                     gameOver = true;
                                 });
                             }else
                                 break;
                             player.getSocket().shutdownInput();
+                            waitingQueue.remove(player);
                             break;
                         }
                     }else{
@@ -133,8 +134,7 @@ public class ReversiServer {
                     if(jsonGet.get("command").equals("ready")){
                         if(gameQueue.size() >= 2){   //if game queue has 2 player, tell the new player to wait
                             sendMessage(player.getSocket(), "wait", "yes", "me");
-                            sendMessage(player.getSocket(), "message", "There's a game running, please wait...", "me");
-                            //TODO: popup <there's a game running, waiting...>
+                            sendMessage(player.getSocket(), "warning", "There's a game running, please wait...", "me");
                         }
                         else {
                             gameQueue.add(player);
@@ -146,7 +146,6 @@ public class ReversiServer {
                         waitingQueue.add(player);
                         gameQueue.remove(player);
                     } else if(jsonGet.get("command").toString().equals("surrender")){
-                        //TODO: popup <Are you sure to surrender?>
                         sendMessage(player.getSocket(), "game", "off", "all");
                         //no matter who has more piece in the map, surrender will affect the opponent wins
                         sendMessage(player.getSocket(), "message", (player.getColor()==1) ? "White wins" : "Black wins", "all");
@@ -199,6 +198,7 @@ public class ReversiServer {
                     }
                 }
             }catch (Exception e) {
+                System.out.println("Unknown command");
             }
         }
 

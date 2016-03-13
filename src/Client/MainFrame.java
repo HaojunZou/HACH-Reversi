@@ -1,5 +1,6 @@
 package Client;
 
+import javafx.beans.property.adapter.JavaBeanObjectProperty;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -147,9 +148,12 @@ public class MainFrame extends JFrame implements MessageBoy{
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
-                    btnSurrender.setVisible(false);
-                    btnReady.setVisible(true);
-                    sendMessage("command", "surrender");
+                    int confirm = JOptionPane.showConfirmDialog(null, "Are you sure to surrender?\nYour rival will win this game automatically!", "No", JOptionPane.YES_NO_OPTION);
+                    if(confirm == 0) {
+                        btnSurrender.setVisible(false);
+                        btnReady.setVisible(true);
+                        sendMessage("command", "surrender");
+                    }
                 }
             });
         } catch (IOException e) {
@@ -226,8 +230,13 @@ public class MainFrame extends JFrame implements MessageBoy{
                     currentPlayer = 1;
                 else if (jsonGet.get("current").toString().equals("-1"))
                     currentPlayer = -1;
+            } else if(cmd.contains("\"warning\":")){
+                JOptionPane.showMessageDialog(null, jsonGet.get("warning").toString());
+                wait = true;
+                //TODO: what is the status here?
             }
         }catch (Exception e){
+            System.out.println("Unknown command");
         }
     }
 
