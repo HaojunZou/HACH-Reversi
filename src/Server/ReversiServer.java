@@ -42,6 +42,7 @@ public class ReversiServer {
 
     private class ClientThread implements Runnable, MessageBoy{
         Player player;
+        boolean left = false;
 
         ClientThread(Player p){
             this.player = p;
@@ -61,11 +62,17 @@ public class ReversiServer {
                 sendMessage(player.getSocket(), "message", "--- Welcome to HC-Reversi ---", "me");
                 String command;
                 while ((command = bufferedReader.readLine()) != null) {
-                    Command(command);
                     JSONObject jsonGet = new JSONObject(command);
                     if(command.contains("\"quit\":")){
-                        if(jsonGet.get("quit").equals("yes"))
+                        if(jsonGet.get("quit").equals("yes")){
+                            if(player.isInGame()){
+                                left = true;
+                            }else
+                                break;
                             break;
+                        }
+                    }else{
+                        Command(command);
                     }
                 }
             } catch (IOException e) {
@@ -118,7 +125,7 @@ public class ReversiServer {
         private void Command(String cmd) {
             JSONObject jsonGet = new JSONObject(cmd);
             try {
-                if (cmd.contains("\"command\":")) { //request user name
+                if (cmd.contains("\"command\":")) {
                     if(jsonGet.get("command").equals("ready")){
                         if(gameQueue.size() >= 2){   //if game queue has 2 player, tell the new player to wait
                             sendMessage(player.getSocket(), "wait", "yes", "me");
@@ -185,9 +192,7 @@ public class ReversiServer {
                             sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
                             for (Player p : gameQueue) {
                                 p.setInGame(false);
-                                waitingQueue.add(p);
                             }
-                            gameQueue.clear();
                         }
                     }
                 }
@@ -242,36 +247,16 @@ public class ReversiServer {
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream(), "UTF-8"));
                     String command;
                     while ((command = bufferedReader.readLine()) != null) {
-                        if(gameQueue.size() == 2)
+                        if(left){
+                            sendMessage(gameQueue.getFirst().getSocket(), "message", "Your opponent left the game", "me");
+                        }else
                             Command(command);
-                        else{
-                            if(gameQueue.size() != 0)
-                                sendMessage(gameQueue.getFirst().getSocket(), "message", "Your opponent has left the game!", "me");
-                            break;
-                        }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
-                    if(gameQueue.size() == 2){
-                        if(gameQueue.getFirst().getSocket().isConnected()) {
-                            gameQueue.getFirst().setInGame(false);
-                            waitingQueue.add(gameQueue.getFirst());
-                        }
-                        if(gameQueue.getLast().getSocket().isConnected()) {
-                            gameQueue.getLast().setInGame(false);
-                            waitingQueue.add(gameQueue.getLast());
-                        }
-                        gameQueue.clear();
-                    } else if(gameQueue.size() == 1){
-                        if(gameQueue.getFirst().getSocket().isConnected()) {
-                            gameQueue.getFirst().setInGame(false);
-                            waitingQueue.add(gameQueue.getFirst());
-                        }
-                        gameQueue.clear();
-                    } else{
-                        gameQueue.clear();
-                    }
+                    waitingQueue.addAll(gameQueue);
+                    gameQueue.clear();
                     System.out.println("Waiting user: " + waitingQueue.size());
                     System.out.println("In game user: " + gameQueue.size());
                     algorithm = new Algorithm();

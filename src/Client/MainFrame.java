@@ -118,18 +118,19 @@ public class MainFrame extends JFrame implements MessageBoy{
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
-                    sendMessage("command", "ready");
                     if (wait) {
                         btnReady.setVisible(true);
                         btnNotReady.setVisible(false);
                     } else {
                         if(inGame) {
+                            inGame = false;
                             btnReady.setVisible(false);
                             btnNotReady.setVisible(false);
                         }else{
                             btnReady.setVisible(false);
                             btnNotReady.setVisible(true);
                         }
+                        sendMessage("command", "ready");
                     }
                 }
             });
@@ -137,18 +138,18 @@ public class MainFrame extends JFrame implements MessageBoy{
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
-                    sendMessage("command", "notReady");
                     btnNotReady.setVisible(false);
                     btnReady.setVisible(true);
+                    sendMessage("command", "notReady");
                 }
             });
             btnSurrender.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
-                    sendMessage("command", "surrender");
                     btnSurrender.setVisible(false);
                     btnReady.setVisible(true);
+                    sendMessage("command", "surrender");
                 }
             });
         } catch (IOException e) {
