@@ -8,7 +8,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
 
-public class MainFrame extends JFrame implements IFrame{
+public class MainFrame extends JFrame implements MessageBoy{
     private Socket socket = null;
     private int[][] map = new int[8][8];	//main 2d-array to save all pieces
     private boolean inGame = false;

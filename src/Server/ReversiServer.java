@@ -40,7 +40,7 @@ public class ReversiServer {
         }
     }
 
-    private class ClientThread implements Runnable, IReversi{
+    private class ClientThread implements Runnable, MessageBoy{
         Player player;
 
         ClientThread(Player p){
@@ -145,37 +145,49 @@ public class ReversiServer {
                         algorithm = new Algorithm();
                     }
                 } else if (cmd.contains("\"move\":")) {
-                    if (algorithm.getCurrentPlayer() == 64) {
-                        //TODO: popup game over message
-                    } else {
-                        if (player.getColor() == algorithm.getCurrentPlayer()) {
-                            int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
-                            int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
-                            //if(algorithm.checkLegal()) {
-                            sendMessage(player.getSocket(), "message",
-                                    (algorithm.getCurrentPlayer() == 1) ?
-                                            ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
-                                            : ("White " + "[" + getX(x) + "," + (y + 1) + "]"),
-                                    "all");
-                            //}
-                            if(!algorithm.move(x, y)) {   //current player might change after this move
-                                sendMessage(player.getSocket(), "current", algorithm.getCurrentPlayer(), "all");
-                                sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
-                                sendMessage(player.getSocket(), "score", getScore(), "all");
+                    if (player.getColor() == algorithm.getCurrentPlayer()) {
+                        int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
+                        int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
+                        //if(algorithm.checkLegal()) {
+                        sendMessage(player.getSocket(), "message",
+                                (algorithm.getCurrentPlayer() == 1) ?
+                                        ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
+                                        : ("White " + "[" + getX(x) + "," + (y + 1) + "]"),
+                                "all");
+                        //}
+                        if (algorithm.move(x, y) == 2) {   //switch player
+                            sendMessage(player.getSocket(), "current", algorithm.getCurrentPlayer(), "all");
+                            sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
+                            sendMessage(player.getSocket(), "score", getScore(), "all");
+                        } else if (algorithm.move(x, y) == 1) {  //opponent player should pass
+                            sendMessage(player.getSocket(), "current", algorithm.getCurrentPlayer(), "all");
+                            sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
+                            sendMessage(player.getSocket(), "score", getScore(), "all");
+                            sendMessage(player.getSocket(), "message", "Your rival pass, go on", "me");
+                            Player passPlayer = null;
+                            for (Player p : gameQueue) {
+                                if (p != player)
+                                    passPlayer = p;
                             }
-                            else{
-                                sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
-                                sendMessage(player.getSocket(), "score", getScore(), "all");
-                                if((getScore()[0]) > (getScore()[1]))
-                                    sendMessage(player.getSocket(), "message", "Black wins!", "all");
-                                else if((getScore()[0]) < (getScore()[1]))
-                                    sendMessage(player.getSocket(), "message", "White wins!", "all");
-                                else
-                                    sendMessage(player.getSocket(), "message", "Draw!", "all");
-                                sendMessage(player.getSocket(), "game", "off", "all");
-                                gameQueue.clear();
-                                sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
+                            assert passPlayer != null;
+                            sendMessage(passPlayer.getSocket(), "message", "Pass", "me");
+                        } else if (algorithm.move(x, y) == 0) {   //if no player can move, game over
+                            sendMessage(player.getSocket(), "message", "Game over!", "all");
+                            sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
+                            sendMessage(player.getSocket(), "score", getScore(), "all");
+                            if ((getScore()[0]) > (getScore()[1]))
+                                sendMessage(player.getSocket(), "message", "Black wins!", "all");
+                            else if ((getScore()[0]) < (getScore()[1]))
+                                sendMessage(player.getSocket(), "message", "White wins!", "all");
+                            else
+                                sendMessage(player.getSocket(), "message", "Draw!", "all");
+                            sendMessage(player.getSocket(), "game", "off", "all");
+                            sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
+                            for (Player p : gameQueue) {
+                                p.setInGame(false);
+                                waitingQueue.add(p);
                             }
+                            gameQueue.clear();
                         }
                     }
                 }

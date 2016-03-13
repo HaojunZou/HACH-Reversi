@@ -46,10 +46,13 @@ class Algorithm {
         return score;
     }
 
-    boolean move(int x, int y){
-        //counter player's score
-        int scoreBlack = countScore(1);
-        int scoreWhite = countScore(-1);
+    /**
+     * move function
+     * @param x
+     * @param y
+     * @return 0 if no one can move, return 1 if opponent player should pass, return 2 if can switch user
+     */
+    int move(int x, int y){
         //using current piece face and grille position check the location
         if (checkLocation(currentPlayer, x, y, true)) {    //if the location is ok
 //            if(piece[x][y] == AVAILABLE)
@@ -59,27 +62,18 @@ class Algorithm {
             if (shouldPass(currentPlayer)) {  //if the opponent player has not available place
                 if (shouldPass(-currentPlayer)) {    //check self should pass
                     currentPlayer = 64;
-                    return true;
-//                    System.out.println("Game Over!");    //if yes, game over
-//                    if (scoreBlack > scoreWhite)
-//                        System.out.println("Black wins!");
-//                    if (scoreBlack < scoreWhite)
-//                        System.out.println("White wins!");
-//                    else
-//                        System.out.println("Draw!");
-                    //TODO: popup game over!
+                    return 0;
                 } else {    //if not, switch player
                     System.out.println("Pass!");
                     currentPlayer *= -1;
+                    return 1;
                 }
-            }
-            System.out.println("- Score -");
-            System.out.println("Black: " + scoreBlack);
-            System.out.println("White: " + scoreWhite + "\n");
+            }else
+                return 2;
         }
 //        else
 //            legalMove = false;
-        return false;
+        return 0;
     }
 
     /**
