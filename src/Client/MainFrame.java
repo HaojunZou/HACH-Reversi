@@ -1,6 +1,5 @@
 package Client;
 
-import javafx.beans.property.adapter.JavaBeanObjectProperty;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -210,6 +209,7 @@ public class MainFrame extends JFrame implements MessageBoy{
             }
             else if (cmd.contains("\"message\":")) {
                 dialogArea.append(jsonGet.get("message").toString() + "\n");
+                dialogArea.setCaretPosition(dialogArea.getText().length());
             } else if (cmd.contains("\"score\":")) {
                 countBlack.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[0]);
                 countWhite.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[1]);

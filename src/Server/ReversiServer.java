@@ -54,6 +54,7 @@ public class ReversiServer extends JFrame{
             inGamePanel.add(inGameNumber);
             logContent.setEditable(false);
             logContent.append("Server on...\n");
+            logContent.setCaretPosition(logContent.getText().length());
 
             this.addWindowListener(new WindowAdapter() {
                 public void windowClosing(WindowEvent e) {
@@ -72,6 +73,7 @@ public class ReversiServer extends JFrame{
                 waitQueue.add(player);
                 waitNumber.setText(Integer.toString(waitQueue.size()));
                 logContent.append("Client connected:" + client.getRemoteSocketAddress().toString() + "\n");
+                logContent.setCaretPosition(logContent.getText().length());
                 Thread t = new Thread(new ClientThread(player));    //build a new thread to client
                 t.start();
             }
@@ -146,6 +148,7 @@ public class ReversiServer extends JFrame{
                 }
             }
             logContent.append("Client " + player.getSocket().toString() + " Disconnected\n");
+            logContent.setCaretPosition(logContent.getText().length());
         }
 
         @Override
@@ -259,6 +262,7 @@ public class ReversiServer extends JFrame{
                 }
             }catch (Exception e) {
                 logContent.append("Unknown command\n");
+                logContent.setCaretPosition(logContent.getText().length());
             }
         }
 
