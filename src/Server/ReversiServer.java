@@ -2,25 +2,76 @@ package Server;
 
 import org.json.JSONObject;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public class ReversiServer {
-    private static LinkedList<Player> waitingQueue = new LinkedList<Player>();	//list of all players are waiting
+public class ReversiServer extends JFrame{
+    private static LinkedList<Player> waitQueue = new LinkedList<Player>();	//list of all players are waiting
     private static LinkedList<Player> gameQueue = new LinkedList<Player>();	//list of all players are engaging
     private Algorithm algorithm = new Algorithm();
 
-    //constructor
+    private JLabel waitNumber = new JLabel(Integer.toString(waitQueue.size())); //number of online user
+    private JLabel inGameNumber = new JLabel(Integer.toString(gameQueue.size()));   //number of in game user
+    private JTextArea logContent = new JTextArea(); //server log
+
     private ReversiServer(int port){
         try(ServerSocket serverSocket = new ServerSocket(port)){
-            System.out.println("Reversi Server on...");
+            this.setTitle("HC-Reversi Server");
+            this.setSize(500, 500);
+            this.setVisible(true);
+
+            JPanel mainPanel = new JPanel();
+            JPanel serverInfo = new JPanel();   //server information
+            JLabel lbHost = new JLabel("Host: " + serverSocket.getLocalSocketAddress().toString());
+            JPanel onlinePanel = new JPanel();
+            JPanel inGamePanel = new JPanel();
+            JLabel lbOnline = new JLabel("Waiting users: ");
+            JLabel lbInGame = new JLabel("In game users: ");
+            JScrollPane logArea = new JScrollPane(logContent);
+
+            mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+            serverInfo.setLayout(new BoxLayout(serverInfo, BoxLayout.Y_AXIS));
+            onlinePanel.setLayout(new BoxLayout(onlinePanel, BoxLayout.X_AXIS));
+            inGamePanel.setLayout(new BoxLayout(inGamePanel, BoxLayout.X_AXIS));
+            Dimension dServerInfo = new Dimension(500, 50);
+            Dimension dLogArea = new Dimension(500, 450);
+            serverInfo.setPreferredSize(dServerInfo);
+            logArea.setPreferredSize(dLogArea);
+            logArea.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+            this.add(mainPanel);
+            mainPanel.add(serverInfo);
+            mainPanel.add(logArea);
+            serverInfo.add(lbHost);
+            serverInfo.add(onlinePanel);
+            serverInfo.add(inGamePanel);
+            onlinePanel.add(lbOnline);
+            onlinePanel.add(waitNumber);
+            inGamePanel.add(lbInGame);
+            inGamePanel.add(inGameNumber);
+            logContent.setEditable(false);
+            logContent.append("Server on...\n");
+
+            this.addWindowListener(new WindowAdapter() {
+                public void windowClosing(WindowEvent e) {
+                    try {
+                        serverSocket.close();
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                    System.exit(0);
+                }
+            });
             for(;;){
                 Socket client = serverSocket.accept();
                 Player player = new Player();
                 player.setSocket(client);
-                waitingQueue.add(player);
-                System.out.printf("Client connected: %s\n", client.getRemoteSocketAddress().toString());
+                waitQueue.add(player);
+                waitNumber.setText(Integer.toString(waitQueue.size()));
+                logContent.append("Client connected:" + client.getRemoteSocketAddress().toString() + "\n");
                 Thread t = new Thread(new ClientThread(player));    //build a new thread to client
                 t.start();
             }
@@ -73,7 +124,9 @@ public class ReversiServer {
                             }else
                                 break;
                             player.getSocket().shutdownInput();
-                            waitingQueue.remove(player);
+                            waitQueue.remove(player);
+                            waitNumber.setText(Integer.toString(waitQueue.size()));
+                            inGameNumber.setText(Integer.toString(gameQueue.size()));
                             break;
                         }
                     }else{
@@ -86,12 +139,13 @@ public class ReversiServer {
                 try {
                     player.getSocket().shutdownInput();
                     player.getSocket().close();
-                    waitingQueue.remove(player);
+                    waitQueue.remove(player);
+                    waitNumber.setText(Integer.toString(waitQueue.size()));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-            System.out.println("Client " + player.getSocket().toString() + " Disconnected");
+            logContent.append("Client " + player.getSocket().toString() + " Disconnected\n");
         }
 
         @Override
@@ -138,20 +192,26 @@ public class ReversiServer {
                         }
                         else {
                             gameQueue.add(player);
-                            waitingQueue.remove(player);
+                            waitQueue.remove(player);
                             if(gameQueue.size() == 2)  //if game queue has two players, start a game
                                 gameStart();
                         }
+                        waitNumber.setText(Integer.toString(waitQueue.size()));
+                        inGameNumber.setText(Integer.toString(gameQueue.size()));
                     } else if(jsonGet.get("command").equals("notReady")){
-                        waitingQueue.add(player);
+                        waitQueue.add(player);
                         gameQueue.remove(player);
+                        waitNumber.setText(Integer.toString(waitQueue.size()));
+                        inGameNumber.setText(Integer.toString(gameQueue.size()));
                     } else if(jsonGet.get("command").toString().equals("surrender")){
                         sendMessage(player.getSocket(), "game", "off", "all");
                         //no matter who has more piece in the map, surrender will affect the opponent wins
                         sendMessage(player.getSocket(), "message", (player.getColor()==1) ? "White wins" : "Black wins", "all");
-                        waitingQueue.add(gameQueue.getFirst());
-                        waitingQueue.add(gameQueue.getLast());
+                        waitQueue.add(gameQueue.getFirst());
+                        waitQueue.add(gameQueue.getLast());
                         gameQueue.clear();
+                        waitNumber.setText(Integer.toString(waitQueue.size()));
+                        inGameNumber.setText(Integer.toString(gameQueue.size()));
                         algorithm = new Algorithm();
                     }
                 } else if (cmd.contains("\"move\":")) {
@@ -198,7 +258,7 @@ public class ReversiServer {
                     }
                 }
             }catch (Exception e) {
-                System.out.println("Unknown command");
+                logContent.append("Unknown command\n");
             }
         }
 
@@ -213,6 +273,8 @@ public class ReversiServer {
             sendMessage(player.getSocket(), "current", algorithm.getCurrentPlayer(), "all");    //send current player move
             sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");  //send map
             sendMessage(player.getSocket(), "score", getScore(), "all");    //send current score
+            waitNumber.setText(Integer.toString(waitQueue.size()));
+            inGameNumber.setText(Integer.toString(gameQueue.size()));
             new Thread(new Game()).start(); //new thread for a game
         }
 
@@ -259,12 +321,12 @@ public class ReversiServer {
                 } finally {
                     for(Player p : gameQueue){
                         p.setInGame(false);
-                        waitingQueue.add(p);
+                        waitQueue.add(p);
                         sendMessage(p.getSocket(), "game", "off", "me");
                     }
                     gameQueue.clear();
-                    System.out.println("Waiting user: " + waitingQueue.size());
-                    System.out.println("In game user: " + gameQueue.size());
+                    waitNumber.setText(Integer.toString(waitQueue.size()));
+                    inGameNumber.setText(Integer.toString(gameQueue.size()));
                     algorithm = new Algorithm();
                     gameOver = false;
                 }
