@@ -42,7 +42,7 @@ public class ReversiServer {
 
     private class ClientThread implements Runnable, MessageBoy{
         Player player;
-        boolean left = false;
+        boolean gameOver = false;
 
         ClientThread(Player p){
             this.player = p;
@@ -66,9 +66,13 @@ public class ReversiServer {
                     if(command.contains("\"quit\":")){
                         if(jsonGet.get("quit").equals("yes")){
                             if(player.isInGame()){
-                                left = true;
+                                gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
+                                    sendMessage(p.getSocket(), "message", "Your opponent left the game", "all");
+                                    gameOver = true;
+                                });
                             }else
                                 break;
+                            player.getSocket().shutdownInput();
                             break;
                         }
                     }else{
@@ -190,9 +194,7 @@ public class ReversiServer {
                                 sendMessage(player.getSocket(), "message", "Draw!", "all");
                             sendMessage(player.getSocket(), "game", "off", "all");
                             sendMessage(player.getSocket(), "show", algorithm.getCurrentMap(), "all");
-                            for (Player p : gameQueue) {
-                                p.setInGame(false);
-                            }
+                            gameOver = true;
                         }
                     }
                 }
@@ -247,19 +249,24 @@ public class ReversiServer {
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream(), "UTF-8"));
                     String command;
                     while ((command = bufferedReader.readLine()) != null) {
-                        if(left){
-                            sendMessage(gameQueue.getFirst().getSocket(), "message", "Your opponent left the game", "me");
-                        }else
+                        if(!gameOver)
                             Command(command);
+                        else if(gameOver)
+                            break;
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
-                    waitingQueue.addAll(gameQueue);
+                    for(Player p : gameQueue){
+                        p.setInGame(false);
+                        waitingQueue.add(p);
+                        sendMessage(p.getSocket(), "game", "off", "me");
+                    }
                     gameQueue.clear();
                     System.out.println("Waiting user: " + waitingQueue.size());
                     System.out.println("In game user: " + gameQueue.size());
                     algorithm = new Algorithm();
+                    gameOver = false;
                 }
             }
         }   //end of Game thread

@@ -50,13 +50,13 @@ class Algorithm {
      * move function
      * @param x
      * @param y
-     * @return 0 if no one can move, return 1 if opponent player should pass, return 2 if can switch user
+     * @return 0 if no one can move, 1 if opponent player should pass, 2 if can switch user, 3 if move is illegal
      */
     int move(int x, int y){
         //using current piece face and grille position check the location
         if (checkLocation(currentPlayer, x, y, true)) {    //if the location is ok
 //            if(piece[x][y] == AVAILABLE)
-//                legalMove = true;
+//                return 3;
             piece[x][y] = currentPlayer;
             currentPlayer *= -1;    //switch the player
             if (shouldPass(currentPlayer)) {  //if the opponent player has not available place
@@ -73,7 +73,7 @@ class Algorithm {
         }
 //        else
 //            legalMove = false;
-        return 0;
+        return 3;
     }
 
     /**
