@@ -99,13 +99,14 @@ public class MainFrame extends JFrame implements MessageBoy{
             public void windowClosing(WindowEvent e) {
                 try {
                     sendMessage("quit", "yes");
-                    bufferedReader.close();
-                    bufferedWriter.close();
-                    socket.close();
-                } catch (IOException e1) {
+                    System.exit(0);
+                } catch (Exception e1) {
                     e1.printStackTrace();
+                }finally {
+                    try { if(bufferedReader != null) bufferedReader.close(); } catch (IOException e1) { e1.printStackTrace(); }
+                    try { if(bufferedWriter != null) bufferedWriter.close(); } catch (IOException e1) { e1.printStackTrace(); }
+                    try { if(socket != null) socket.close(); } catch (IOException e1) { e1.printStackTrace(); }
                 }
-                System.exit(0);
             }
         });
         launch();
