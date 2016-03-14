@@ -12,7 +12,6 @@ public class MainFrame extends JFrame implements MessageBoy{
     private Socket socket = null;
     private int[][] map = new int[8][8];	//main 2d-array to save all pieces
     private boolean inGame = false;
-    private boolean wait = false;
     private int currentPlayer = 1;
     private GamePanel gamePanel = new GamePanel(map);
     private BufferedReader bufferedReader = null;
@@ -42,6 +41,7 @@ public class MainFrame extends JFrame implements MessageBoy{
         this.setSize(700, 525);
         this.setBackground(BACKGROUND_COLOR);
         this.setVisible(true);
+        this.setResizable(false);
         JPanel panelStatus = new JPanel();
         this.add("East", panelStatus);
         this.add("Center", gamePanel);
@@ -126,7 +126,6 @@ public class MainFrame extends JFrame implements MessageBoy{
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
                     sendMessage("command", "ready");
-
                 }
             });
             btnNotReady.addMouseListener(new MouseAdapter() {
@@ -230,8 +229,6 @@ public class MainFrame extends JFrame implements MessageBoy{
                     currentPlayer = -1;
             } else if(cmd.contains("\"warning\":")){
                 JOptionPane.showMessageDialog(null, jsonGet.get("warning").toString());
-                wait = true;
-                //TODO: what is the status here?
             }
         }catch (Exception e){
             System.out.println("Unknown command");
@@ -302,7 +299,6 @@ public class MainFrame extends JFrame implements MessageBoy{
                 }
             }
 
-            g.setColor(BLACK_COLOR);
             //draw horizontal lines
             for (int i = 0; i <= 8; i++) {
                 g.drawLine(50, 50 * i + 50, 450, 50 * i + 50);

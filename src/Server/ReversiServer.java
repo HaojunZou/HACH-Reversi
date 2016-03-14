@@ -103,6 +103,7 @@ public class ReversiServer extends JFrame{
         @Override
         public void run(){
             getMessage();
+            printLog("Client Disconnected: " + player.getSocket().getRemoteSocketAddress().toString());
         }
 
         @Override
@@ -118,7 +119,7 @@ public class ReversiServer extends JFrame{
                         if(jsonGet.get("quit").equals("yes")){
                             if(player.isInGame()){
                                 gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
-                                    sendMessage(p, "message", "Your rival left the game");
+                                    sendMessage(p, "message", "Your rival left the game!");
                                     gameEnd(gameQueue);
                                 });
                             }else
@@ -142,7 +143,6 @@ public class ReversiServer extends JFrame{
                     e.printStackTrace();
                 }
             }
-            printLog("Client " + player.getSocket().toString() + " Disconnected");
         }
 
         @Override
@@ -188,7 +188,7 @@ public class ReversiServer extends JFrame{
                     if(jsonGet.get("command").equals("ready")){
                         if(gameQueue.size() >= 2){   //if game queue has 2 player, tell the new player to wait
                             sendMessage(player, "game", "wait");
-                            sendMessage(player, "warning", "There's a game running, please wait...");
+                            sendMessage(player, "warning", "There's a game running, please try ready later...");
                         }
                         else {
                             gameQueue.add(player);
@@ -203,38 +203,47 @@ public class ReversiServer extends JFrame{
                         serverUpdate();
                     } else if(jsonGet.get("command").toString().equals("surrender")){
                         //no matter who has more pieces in the map, surrender will affect the opponent wins
-                        sendAllMessage(gameQueue, "message", (player.getColor()==1) ? "White wins" : "Black wins");
+                        gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
+                            sendMessage(p, "message", "Your rival surrendered!");
+                        });
+                        sendAllMessage(gameQueue, "message", (player.getColor()==1) ? "White wins!" : "Black wins!");
                         gameEnd(gameQueue);
                     }
                 } else if (cmd.contains("\"move\":")) {
                     if (player.getColor() == algorithm.getCurrentPlayer()) {
                         int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
                         int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
-                        //if(algorithm.checkLegal()) {
-                        sendAllMessage(gameQueue, "message",
-                                (algorithm.getCurrentPlayer() == 1) ?
-                                        ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
-                                        : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
-                        //}
-                        if (algorithm.move(x, y) == 2) {   //switch player
+                        int nextPlayer = algorithm.move(x, y);
+                        if (nextPlayer == -player.getColor() && nextPlayer != 0) {   //switch player
+                            //result shows player color before switch
+                            sendAllMessage(gameQueue, "message",
+                                    (algorithm.getCurrentPlayer() == -1) ?
+                                            ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
+                                            : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
                             gameUpdate(gameQueue);
-                        } else if (algorithm.move(x, y) == 1) {  //opponent player should pass
-                            gameUpdate(gameQueue);
-                            sendMessage(player, "message", "Your rival pass, go on");
+                        } else if (nextPlayer == player.getColor() && nextPlayer != 0) {  //if not switch player
+                            //result shows same color before move
+                            sendAllMessage(gameQueue, "message",
+                                    (algorithm.getCurrentPlayer() == 1) ?
+                                            ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
+                                            : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
+                            sendMessage(player, "message", "Your rival pass, go on!");
                             Player passPlayer = null;
                             for (Player p : gameQueue) {
                                 if (p != player)
                                     passPlayer = p;
                             }
                             assert passPlayer != null;
-                            sendMessage(passPlayer, "message", "Pass");
-                        } else if (algorithm.move(x, y) == 0) {   //if no player can move, game over
+                            sendMessage(passPlayer, "message", "Pass!");
+                            gameUpdate(gameQueue);
+                        } else if (nextPlayer == 64) {   //if no player can move, game over
                             if ((getScore()[0]) > (getScore()[1]))
                                 sendAllMessage(gameQueue, "message", "Black wins!");
                             else if ((getScore()[0]) < (getScore()[1]))
                                 sendAllMessage(gameQueue, "message", "White wins!");
                             else
                                 sendAllMessage(gameQueue, "message", "Draw!");
+                            gameUpdate(gameQueue);
                             gameEnd(gameQueue);
                         }
                     }

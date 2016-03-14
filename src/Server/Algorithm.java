@@ -6,7 +6,6 @@ class Algorithm {
     private static final int AVAILABLE = 2;	//current player available place
     private int[][] piece = new int[8][8];	//main 2d-array to save all pieces
     private int currentPlayer = 1; // current piece
-    private boolean legalMove = false;  //if the current move is legal
 
     Algorithm(){
         piece[3][3] = WHITE;
@@ -31,8 +30,6 @@ class Algorithm {
 
     int getCountWhite(){ return countScore(-1); }
 
-    boolean checkLegal() { return legalMove; }
-
     //counter the score
     private int countScore(int cur){
         int score = 0;
@@ -50,30 +47,24 @@ class Algorithm {
      * move function
      * @param x
      * @param y
-     * @return 0 if no one can move, 1 if opponent player should pass, 2 if can switch user, 3 if move is illegal
+     * @return next player color
      */
     int move(int x, int y){
         //using current piece face and grille position check the location
         if (checkLocation(currentPlayer, x, y, true)) {    //if the location is ok
-//            if(piece[x][y] == AVAILABLE)
-//                return 3;
             piece[x][y] = currentPlayer;
             currentPlayer *= -1;    //switch the player
             if (shouldPass(currentPlayer)) {  //if the opponent player has not available place
                 if (shouldPass(-currentPlayer)) {    //check self should pass
                     currentPlayer = 64;
-                    return 0;
                 } else {    //if not, switch player
                     System.out.println("Pass!");
                     currentPlayer *= -1;
-                    return 1;
                 }
-            }else
-                return 2;
-        }
-//        else
-//            legalMove = false;
-        return 3;
+            }
+        } else
+            return 0;
+        return currentPlayer;
     }
 
     /**
