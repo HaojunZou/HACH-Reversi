@@ -38,7 +38,7 @@ public class MainFrame extends JFrame implements MessageBoy{
     //Constructor
     private MainFrame() {
         /****** Main Frame ******/
-        this.setSize(700, 500);
+        this.setSize(700, 525);
         this.setBackground(BACKGROUND_COLOR);
         this.setVisible(true);
         JPanel panelStatus = new JPanel();
@@ -47,15 +47,17 @@ public class MainFrame extends JFrame implements MessageBoy{
 
         /****** Status Panel ******/
         panelStatus.setLayout(new BoxLayout(panelStatus, BoxLayout.Y_AXIS));
-        Dimension dStatus = new Dimension(200, 500);
+        Dimension dStatus = new Dimension(200, 525);
         panelStatus.setPreferredSize(dStatus);
 
         /***** Status Container ******/
         JPanel scorePanel = new JPanel();
         ConnectionPanel connectionPanel = new ConnectionPanel();
+        JPanel buttonPanel = new JPanel();
         JPanel dialogPanel = new JPanel();
         panelStatus.add(scorePanel);
         panelStatus.add(connectionPanel);
+        panelStatus.add(buttonPanel);
         panelStatus.add(dialogPanel);
 
         /****** Score Panel ******/
@@ -77,21 +79,18 @@ public class MainFrame extends JFrame implements MessageBoy{
 
         /****** Dialog Panel ******/
         dialogPanel.setLayout(new BoxLayout(dialogPanel, BoxLayout.Y_AXIS));
-        Dimension dReady = new Dimension(200, 25);
-        Dimension dNotReady = new Dimension(200, 25);
-        Dimension dSurrender = new Dimension(200, 25);
-        Dimension dScroll = new Dimension(200, 275);
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        Dimension dButton = new Dimension(200, 25);
+        Dimension dScroll = new Dimension(200, 300);
         JScrollPane dialogScroll = new JScrollPane(dialogArea);
         dialogScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        btnReady.setPreferredSize(dReady);
-        btnNotReady.setPreferredSize(dNotReady);
-        btnSurrender.setPreferredSize(dSurrender);
-        btnNotReady.setVisible(false);
-        btnSurrender.setVisible(false);
+        buttonPanel.setPreferredSize(dButton);
         dialogScroll.setPreferredSize(dScroll);
-        dialogPanel.add(btnReady);
-        dialogPanel.add(btnNotReady);
-        dialogPanel.add(btnSurrender);
+        buttonPanel.add(btnReady);
+        buttonPanel.add(btnNotReady);
+        buttonPanel.add(btnSurrender);
+        btnNotReady.setVisible(false);
+        btnSurrender.setEnabled(false);
         dialogPanel.add(dialogScroll);
         dialogArea.setEditable(false);
 
@@ -129,15 +128,18 @@ public class MainFrame extends JFrame implements MessageBoy{
                         btnReady.setVisible(true);
                         btnNotReady.setVisible(false);
                     } else {
-                        if(inGame) {
-                            inGame = false;
-                            btnReady.setVisible(false);
-                            btnNotReady.setVisible(false);
-                        }else{
-                            btnReady.setVisible(false);
-                            btnNotReady.setVisible(true);
-                        }
+                        btnReady.setVisible(false);
+                        btnNotReady.setVisible(true);
                         sendMessage("command", "ready");
+//                        if(inGame) {
+//                            inGame = false;
+//                            btnReady.setEnabled(false);
+//                            btnNotReady.setEnabled(false);
+//                        }
+//                        else{
+//                            btnReady.setEnabled(false);
+//                            btnNotReady.setEnabled(true);
+//                        }
                     }
                 }
             });
@@ -154,11 +156,13 @@ public class MainFrame extends JFrame implements MessageBoy{
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
-                    int confirm = JOptionPane.showConfirmDialog(null, "Are you sure to surrender?\nYour rival will win this game automatically!", "No", JOptionPane.YES_NO_OPTION);
-                    if(confirm == 0) {
-                        btnSurrender.setVisible(false);
-                        btnReady.setVisible(true);
-                        sendMessage("command", "surrender");
+                    int confirm;
+                    if(inGame) {
+                        confirm = JOptionPane.showConfirmDialog(null, "Are you sure to surrender?\nYour rival will win this game automatically!", "No", JOptionPane.YES_NO_OPTION);
+                        if (confirm == 0) {
+//                            btnSurrender.setEnabled(false);
+                            sendMessage("command", "surrender");
+                        }
                     }
                 }
             });
@@ -172,7 +176,6 @@ public class MainFrame extends JFrame implements MessageBoy{
         new Thread(){
             @Override
             public void run() {
-
                 try {
                     bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
                     String command;
@@ -181,13 +184,6 @@ public class MainFrame extends JFrame implements MessageBoy{
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
-                }finally {
-                    try {
-                        if(bufferedReader != null)
-                            bufferedReader.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 }
             }
         }.start();
@@ -195,7 +191,6 @@ public class MainFrame extends JFrame implements MessageBoy{
 
     @Override
     public void sendMessage(String key, Object value){
-
         try {
             if(socket.isConnected()) {
                 JSONObject jsonSend = new JSONObject();
@@ -214,14 +209,15 @@ public class MainFrame extends JFrame implements MessageBoy{
     private void Command(String cmd) {
         JSONObject jsonGet = new JSONObject(cmd);
         try {
-            if (cmd.contains("\"show\":")) {
-                String mapString = jsonGet.get("show").toString();
-                refreshMap(mapString);
-            } else if (cmd.contains("\"wait\":")) {
+            if (cmd.contains("\"wait\":")) {
                 if(jsonGet.get("wait").toString().equals("yes"))
                     wait = true;
-            }
-            else if (cmd.contains("\"message\":")) {
+                else if(jsonGet.get("wait").toString().equals("no"))
+                    wait = false;
+            } else if (cmd.contains("\"show\":")) {
+                String mapString = jsonGet.get("show").toString();
+                refreshMap(mapString);
+            } else if (cmd.contains("\"message\":")) {
                 dialogArea.append(jsonGet.get("message").toString() + "\n");
                 dialogArea.setCaretPosition(dialogArea.getText().length());
             } else if (cmd.contains("\"score\":")) {
@@ -229,15 +225,20 @@ public class MainFrame extends JFrame implements MessageBoy{
                 countWhite.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[1]);
             } else if(cmd.contains("\"game\":")){
                 if(jsonGet.get("game").toString().equals("on")) {
-                    inGame = true;
-                    btnSurrender.setVisible(true);
                     btnReady.setVisible(false);
                     btnNotReady.setVisible(false);
-                }
-                if(jsonGet.get("game").toString().equals("off")) {
-                    inGame = false;
+                    btnSurrender.setEnabled(true);
+                    inGame = true;
+                } else if(jsonGet.get("game").toString().equals("off")) {
                     btnReady.setVisible(true);
-                    btnSurrender.setVisible(false);
+                    btnNotReady.setVisible(false);
+                    btnSurrender.setEnabled(false);
+                    inGame = false;
+                } else{
+                    btnReady.setVisible(true);
+                    btnNotReady.setVisible(false);
+                    btnSurrender.setEnabled(false);
+                    inGame = false;
                 }
             } else if(cmd.contains("\"current\":")){
                 if (jsonGet.get("current").toString().equals("1"))

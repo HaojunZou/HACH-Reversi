@@ -1,6 +1,5 @@
 package Server;
 
-import java.net.Socket;
 import java.util.LinkedList;
 
 public interface MessageBoy {

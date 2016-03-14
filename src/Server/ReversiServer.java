@@ -107,10 +107,10 @@ public class ReversiServer extends JFrame{
 
         @Override
         public void getMessage(){
+            BufferedReader bufferedReader;
             try {
-                player.getSocket().setSoTimeout(1200000);
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream(), "UTF-8"));
-                sendMessage(player, "message", "--- Welcome to HC-Reversi ---");
+                bufferedReader = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream(), "UTF-8"));
+                sendMessage(player, "message", "--- Welcome to HACH-Reversi ---");
                 String command;
                 while ((command = bufferedReader.readLine()) != null) {
                     JSONObject jsonGet = new JSONObject(command);
@@ -135,7 +135,6 @@ public class ReversiServer extends JFrame{
                 e.printStackTrace();
             }finally {
                 try {
-                    player.getSocket().shutdownInput();
                     player.getSocket().close();
                     onlineQueue.remove(player);
                     serverUpdate();
@@ -148,12 +147,11 @@ public class ReversiServer extends JFrame{
 
         @Override
         public void sendMessage(Player player, String key, Object value){
-            BufferedWriter bufferedWriter;
             try {
                 if (player.getSocket().isConnected()) {
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put(key, value);
-                    bufferedWriter = new BufferedWriter(new OutputStreamWriter(player.getSocket().getOutputStream(), "UTF-8"));
+                    BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(player.getSocket().getOutputStream(), "UTF-8"));
                     String jsonString = jsonObject.toString();
                     bufferedWriter.write(jsonString);
                     bufferedWriter.write("\r\n");
@@ -166,13 +164,12 @@ public class ReversiServer extends JFrame{
 
         @Override
         public void sendAllMessage(LinkedList<Player> players, String key, Object value){
-            BufferedWriter bufferedWriter;
             try {
                 for (Player p : players) {
                     if (p.getSocket().isConnected()) {
                         JSONObject jsonSend = new JSONObject();
                         jsonSend.put(key, value);
-                        bufferedWriter = new BufferedWriter(new OutputStreamWriter(p.getSocket().getOutputStream(), "UTF-8"));
+                        BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(p.getSocket().getOutputStream(), "UTF-8"));
                         String jsonString = jsonSend.toString();
                         bufferedWriter.write(jsonString);
                         bufferedWriter.write("\r\n");
@@ -193,19 +190,18 @@ public class ReversiServer extends JFrame{
                             sendMessage(player, "wait", "yes");
                             sendMessage(player, "warning", "There's a game running, please wait...");
                         }
-                        else {
+                        else{
+                            sendMessage(player, "wait", "no");
                             gameQueue.add(player);
-//                            onlineQueue.remove(player);
                             if(gameQueue.size() == 2)  //if game queue has two players, start a game
                                 gameStart(gameQueue);
                         }
                         serverUpdate();
                     } else if(jsonGet.get("command").equals("notReady")){
-//                        onlineQueue.add(player);
                         gameQueue.remove(player);
                         serverUpdate();
                     } else if(jsonGet.get("command").toString().equals("surrender")){
-                        //no matter who has more piece in the map, surrender will affect the opponent wins
+                        //no matter who has more pieces in the map, surrender will affect the opponent wins
                         sendAllMessage(gameQueue, "message", (player.getColor()==1) ? "White wins" : "Black wins");
                         gameEnd(gameQueue);
                         serverUpdate();
@@ -233,7 +229,6 @@ public class ReversiServer extends JFrame{
                             assert passPlayer != null;
                             sendMessage(passPlayer, "message", "Pass");
                         } else if (algorithm.move(x, y) == 0) {   //if no player can move, game over
-
                             if ((getScore()[0]) > (getScore()[1]))
                                 sendAllMessage(gameQueue, "message", "Black wins!");
                             else if ((getScore()[0]) < (getScore()[1]))
@@ -327,10 +322,9 @@ public class ReversiServer extends JFrame{
                 } finally {
                     for(Player p : gameQueue){
                         p.setInGame(false);
-                        sendMessage(p, "game", "off");
                     }
+                    sendAllMessage(gameQueue, "game", "off");
                     serverUpdate();
-                    gameEnd(gameQueue);
                     gameQueue.clear();
                 }
             }
