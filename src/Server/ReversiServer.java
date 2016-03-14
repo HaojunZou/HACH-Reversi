@@ -23,6 +23,7 @@ public class ReversiServer extends JFrame{
             this.setTitle("HC-Reversi Server");
             this.setSize(500, 500);
             this.setVisible(true);
+            this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
             JPanel mainPanel = new JPanel();
             JPanel serverInfo = new JPanel();   //server information
@@ -66,7 +67,7 @@ public class ReversiServer extends JFrame{
                     System.exit(0);
                 }
             });
-            for(;;){
+            for(;;) {
                 Socket client = serverSocket.accept();
                 Player player = new Player();
                 player.setSocket(client);
@@ -77,7 +78,7 @@ public class ReversiServer extends JFrame{
                 Thread t = new Thread(new ClientThread(player));    //build a new thread to client
                 t.start();
             }
-        }catch(IOException e){
+        }catch(Exception e){
             e.printStackTrace();
         }
     }

@@ -15,6 +15,8 @@ public class MainFrame extends JFrame implements MessageBoy{
     private boolean wait = false;
     private int currentPlayer = 1;
     private GamePanel gamePanel = new GamePanel(map);
+    private BufferedReader bufferedReader = null;
+    private BufferedWriter bufferedWriter = null;
 
     private static final Color BACKGROUND_COLOR = new Color(60, 150, 60);
     private static final Color AVAILABLE_PLACE_COLOR = new Color(50, 50, 50);
@@ -97,6 +99,8 @@ public class MainFrame extends JFrame implements MessageBoy{
             public void windowClosing(WindowEvent e) {
                 try {
                     sendMessage("quit", "yes");
+                    bufferedReader.close();
+                    bufferedWriter.close();
                     socket.close();
                 } catch (IOException e1) {
                     e1.printStackTrace();
@@ -167,7 +171,7 @@ public class MainFrame extends JFrame implements MessageBoy{
         new Thread(){
             @Override
             public void run() {
-                BufferedReader bufferedReader;
+
                 try {
                     bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
                     String command;
@@ -176,6 +180,13 @@ public class MainFrame extends JFrame implements MessageBoy{
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                }finally {
+                    try {
+                        if(bufferedReader != null)
+                            bufferedReader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }.start();
@@ -183,7 +194,7 @@ public class MainFrame extends JFrame implements MessageBoy{
 
     @Override
     public void sendMessage(String key, Object value){
-        BufferedWriter bufferedWriter;
+
         try {
             if(socket.isConnected()) {
                 JSONObject jsonSend = new JSONObject();
