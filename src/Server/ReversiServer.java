@@ -20,7 +20,7 @@ public class ReversiServer extends JFrame{
 
     private ReversiServer(int port){
         try(ServerSocket serverSocket = new ServerSocket(port)){
-            this.setTitle("HC-Reversi Server");
+            this.setTitle("HACH-Reversi Server");
             this.setSize(500, 500);
             this.setVisible(true);
             this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -187,15 +187,16 @@ public class ReversiServer extends JFrame{
                 if (cmd.contains("\"command\":")) {
                     if(jsonGet.get("command").equals("ready")){
                         if(gameQueue.size() >= 2){   //if game queue has 2 player, tell the new player to wait
-                            sendMessage(player, "wait", "yes");
+                            sendMessage(player, "game", "wait");
                             sendMessage(player, "warning", "There's a game running, please wait...");
                         }
-                        else{
-                            sendMessage(player, "wait", "no");
+                        else {
                             gameQueue.add(player);
+                            if(gameQueue.size() < 2)
+                                sendMessage(player, "game", "ready");
+                            else if (gameQueue.size() == 2)  //if game queue has two players, start a game
+                                gameStart(gameQueue);
                         }
-                        if(gameQueue.size() == 2)  //if game queue has two players, start a game
-                            gameStart(gameQueue);
                         serverUpdate();
                     } else if(jsonGet.get("command").equals("notReady")){
                         gameQueue.remove(player);
@@ -310,11 +311,7 @@ public class ReversiServer extends JFrame{
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream(), "UTF-8"));
                     String command;
                     while ((command = bufferedReader.readLine()) != null) {
-                        if(!gameOver)
-                            Command(command);
-                        else if(gameOver) {
-                            break;
-                        }
+                        Command(command);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -323,6 +320,7 @@ public class ReversiServer extends JFrame{
                         p.setInGame(false);
                     }
                     sendAllMessage(gameQueue, "game", "off");
+                    gameEnd(gameQueue);
                     serverUpdate();
                     gameQueue.clear();
                 }

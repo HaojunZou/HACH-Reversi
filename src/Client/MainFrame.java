@@ -38,6 +38,7 @@ public class MainFrame extends JFrame implements MessageBoy{
     //Constructor
     private MainFrame() {
         /****** Main Frame ******/
+        this.setTitle("HACH-Reversi");
         this.setSize(700, 525);
         this.setBackground(BACKGROUND_COLOR);
         this.setVisible(true);
@@ -109,6 +110,7 @@ public class MainFrame extends JFrame implements MessageBoy{
             }
         });
         launch();
+        getMessage();
     }
 
     //main method access
@@ -119,27 +121,18 @@ public class MainFrame extends JFrame implements MessageBoy{
     private void launch(){
         try {
             socket = new Socket("127.0.0.1", 8888);
-            getMessage();
             btnReady.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
-                    if (wait) {
-                        btnReady.setVisible(true);
-                        btnNotReady.setVisible(false);
-                    } else {
-                        sendMessage("command", "ready");
-                        btnReady.setVisible(false);
-                        btnNotReady.setVisible(true);
-                    }
+                    sendMessage("command", "ready");
+
                 }
             });
             btnNotReady.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
-                    btnNotReady.setVisible(false);
-                    btnReady.setVisible(true);
                     sendMessage("command", "notReady");
                 }
             });
@@ -199,12 +192,7 @@ public class MainFrame extends JFrame implements MessageBoy{
     private void Command(String cmd) {
         JSONObject jsonGet = new JSONObject(cmd);
         try {
-            if (cmd.contains("\"wait\":")) {
-                if(jsonGet.get("wait").toString().equals("yes"))
-                    wait = true;
-                else if(jsonGet.get("wait").toString().equals("no"))
-                    wait = false;
-            } else if (cmd.contains("\"show\":")) {
+            if (cmd.contains("\"show\":")) {
                 String mapString = jsonGet.get("show").toString();
                 refreshMap(mapString);
             } else if (cmd.contains("\"message\":")) {
@@ -220,6 +208,16 @@ public class MainFrame extends JFrame implements MessageBoy{
                     btnSurrender.setEnabled(true);
                     inGame = true;
                 } else if(jsonGet.get("game").toString().equals("off")) {
+                    inGame = false;
+                    btnReady.setVisible(true);
+                    btnNotReady.setVisible(false);
+                    btnSurrender.setEnabled(false);
+                } else if(jsonGet.get("game").toString().equals("ready")) {
+                    inGame = false;
+                    btnReady.setVisible(false);
+                    btnNotReady.setVisible(true);
+                    btnSurrender.setEnabled(false);
+                } else if(jsonGet.get("game").toString().equals("wait")) {
                     inGame = false;
                     btnReady.setVisible(true);
                     btnNotReady.setVisible(false);
