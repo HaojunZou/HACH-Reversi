@@ -128,18 +128,9 @@ public class MainFrame extends JFrame implements MessageBoy{
                         btnReady.setVisible(true);
                         btnNotReady.setVisible(false);
                     } else {
+                        sendMessage("command", "ready");
                         btnReady.setVisible(false);
                         btnNotReady.setVisible(true);
-                        sendMessage("command", "ready");
-//                        if(inGame) {
-//                            inGame = false;
-//                            btnReady.setEnabled(false);
-//                            btnNotReady.setEnabled(false);
-//                        }
-//                        else{
-//                            btnReady.setEnabled(false);
-//                            btnNotReady.setEnabled(true);
-//                        }
                     }
                 }
             });
@@ -160,7 +151,6 @@ public class MainFrame extends JFrame implements MessageBoy{
                     if(inGame) {
                         confirm = JOptionPane.showConfirmDialog(null, "Are you sure to surrender?\nYour rival will win this game automatically!", "No", JOptionPane.YES_NO_OPTION);
                         if (confirm == 0) {
-//                            btnSurrender.setEnabled(false);
                             sendMessage("command", "surrender");
                         }
                     }
@@ -230,15 +220,10 @@ public class MainFrame extends JFrame implements MessageBoy{
                     btnSurrender.setEnabled(true);
                     inGame = true;
                 } else if(jsonGet.get("game").toString().equals("off")) {
+                    inGame = false;
                     btnReady.setVisible(true);
                     btnNotReady.setVisible(false);
                     btnSurrender.setEnabled(false);
-                    inGame = false;
-                } else{
-                    btnReady.setVisible(true);
-                    btnNotReady.setVisible(false);
-                    btnSurrender.setEnabled(false);
-                    inGame = false;
                 }
             } else if(cmd.contains("\"current\":")){
                 if (jsonGet.get("current").toString().equals("1"))
