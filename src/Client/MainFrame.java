@@ -48,10 +48,12 @@ public class MainFrame extends JFrame implements MessageBoy{
         Dimension dStatus = new Dimension(200, 500);
         panelStatus.setPreferredSize(dStatus);
 
-        /***** Status Container */
+        /***** Status Container ******/
         JPanel scorePanel = new JPanel();
+        ConnectionPanel connectionPanel = new ConnectionPanel();
         JPanel dialogPanel = new JPanel();
         panelStatus.add(scorePanel);
+        panelStatus.add(connectionPanel);
         panelStatus.add(dialogPanel);
 
         /****** Score Panel ******/
