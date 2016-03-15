@@ -247,6 +247,8 @@ public class ReversiServer extends JFrame{
                             gameEnd(gameQueue);
                         }
                     }
+                } else if(cmd.contains("\"chat\":")){
+                    sendAllMessage(gameQueue, "message", ((player.getColor() == 1) ? "Black say: " : "White say: ") + jsonGet.get("chat"));
                 }
             }catch (Exception e) {
             }

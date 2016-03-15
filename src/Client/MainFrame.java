@@ -14,7 +14,7 @@ public class MainFrame extends JFrame implements MessageBoy{
     private String host;
     private int port;
     private boolean connected = false;
-    private int[][] map = new int[8][8];	//main 2d-array to save all pieces
+    private int[][] map = new int[8][8];
     private boolean inGame = false;
     private int currentPlayer = 1;
     private GamePanel gamePanel = new GamePanel(map);
@@ -54,6 +54,11 @@ public class MainFrame extends JFrame implements MessageBoy{
     private JButton btnNotReady = new JButton("Not Ready");
     private JButton btnSurrender = new JButton("Surrender");
 
+    /****** Chat Panel ******/
+    private JPanel chatPanel = new JPanel();
+    private JTextField txtChat = new JTextField();
+    private JButton btnSend = new JButton("Send");
+
     //Constructor
     private MainFrame() {
         /****** Main Frame ******/
@@ -76,23 +81,33 @@ public class MainFrame extends JFrame implements MessageBoy{
         panelStatus.add(connectionPanel);
         panelStatus.add(buttonPanel);
         panelStatus.add(dialogPanel);
+        panelStatus.add(chatPanel);
 
         /****** Score Panel ******/
         scorePanel.setLayout(new BoxLayout(scorePanel, BoxLayout.Y_AXIS));
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
         Dimension dScore = new Dimension(200, 75);
-        Dimension dBlack = new Dimension(200, 37);
-        Dimension dWhite = new Dimension(200, 38);
+        Dimension dBlack = new Dimension(200, 25);
+        Dimension dWhite = new Dimension(200, 25);
+        Dimension dButton = new Dimension(200, 25);
         scorePanel.setPreferredSize(dScore);
         JPanel playerBlackPanel = new JPanel();
         playerBlackPanel.setPreferredSize(dBlack);
         JPanel playerWhitePanel = new JPanel();
         playerWhitePanel.setPreferredSize(dWhite);
+        buttonPanel.setPreferredSize(dButton);
         scorePanel.add(playerBlackPanel);
         scorePanel.add(playerWhitePanel);
+        scorePanel.add(buttonPanel);
         playerBlackPanel.add(lbBlack);
         playerBlackPanel.add(countBlack);
         playerWhitePanel.add(lbWhite);
         playerWhitePanel.add(countWhite);
+        buttonPanel.add(btnReady);
+        buttonPanel.add(btnNotReady);
+        buttonPanel.add(btnSurrender);
+        btnNotReady.setVisible(false);
+        btnSurrender.setEnabled(false);
         scorePanel.setVisible(false);
 
         /****** Connection Panel ******/
@@ -125,20 +140,21 @@ public class MainFrame extends JFrame implements MessageBoy{
 
         /****** Dialog Panel ******/
         dialogPanel.setLayout(new BoxLayout(dialogPanel, BoxLayout.Y_AXIS));
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-        Dimension dButton = new Dimension(200, 25);
         Dimension dScroll = new Dimension(200, 425);
         JScrollPane dialogScroll = new JScrollPane(dialogArea);
         dialogScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        buttonPanel.setPreferredSize(dButton);
         dialogScroll.setPreferredSize(dScroll);
-        buttonPanel.add(btnReady);
-        buttonPanel.add(btnNotReady);
-        buttonPanel.add(btnSurrender);
-        btnNotReady.setVisible(false);
-        btnSurrender.setEnabled(false);
         dialogPanel.add(dialogScroll);
         dialogArea.setEditable(false);
+
+        /****** Chat Panel ******/
+        chatPanel.setLayout(new BoxLayout(chatPanel, BoxLayout.X_AXIS));
+        Dimension dChat = new Dimension(200, 25);
+        chatPanel.setPreferredSize(dChat);
+        chatPanel.add(txtChat);
+        chatPanel.add(btnSend);
+        txtChat.setEnabled(false);
+        btnSend.setEnabled(false);
 
         this.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
@@ -162,7 +178,7 @@ public class MainFrame extends JFrame implements MessageBoy{
         mf.login();
     }
 
-    public void login(){
+    private void login(){
         btnConnect.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -230,9 +246,22 @@ public class MainFrame extends JFrame implements MessageBoy{
                     }
                 }
             });
+            txtChat.addActionListener(e -> {
+                sendChatMessage(txtChat.getText());
+                txtChat.setText("");
+            });
+            btnSend.addActionListener(e -> {
+                sendChatMessage(txtChat.getText());
+                txtChat.setText("");
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void sendChatMessage(String msg){
+        if(!(msg).equals(""))
+            sendMessage("chat", msg);
     }
 
     @Override
@@ -287,22 +316,30 @@ public class MainFrame extends JFrame implements MessageBoy{
                     btnReady.setVisible(false);
                     btnNotReady.setVisible(false);
                     btnSurrender.setEnabled(true);
+                    txtChat.setEnabled(true);
+                    btnSend.setEnabled(true);
                     inGame = true;
                 } else if(jsonGet.get("game").toString().equals("off")) {
                     inGame = false;
                     btnReady.setVisible(true);
                     btnNotReady.setVisible(false);
                     btnSurrender.setEnabled(false);
+                    txtChat.setEnabled(false);
+                    btnSend.setEnabled(false);
                 } else if(jsonGet.get("game").toString().equals("ready")) {
                     inGame = false;
                     btnReady.setVisible(false);
                     btnNotReady.setVisible(true);
                     btnSurrender.setEnabled(false);
+                    txtChat.setEnabled(false);
+                    btnSend.setEnabled(false);
                 } else if(jsonGet.get("game").toString().equals("wait")) {
                     inGame = false;
                     btnReady.setVisible(true);
                     btnNotReady.setVisible(false);
                     btnSurrender.setEnabled(false);
+                    txtChat.setEnabled(false);
+                    btnSend.setEnabled(false);
                 }
             } else if(cmd.contains("\"current\":")){
                 if (jsonGet.get("current").toString().equals("1"))
