@@ -10,6 +10,9 @@ import java.net.Socket;
 
 public class MainFrame extends JFrame implements MessageBoy{
     private Socket socket = null;
+    private String host;
+    private int port;
+    private boolean connected = false;
     private int[][] map = new int[8][8];	//main 2d-array to save all pieces
     private boolean inGame = false;
     private int currentPlayer = 1;
@@ -22,11 +25,27 @@ public class MainFrame extends JFrame implements MessageBoy{
     private static final Color BLACK_COLOR = new Color(0, 0, 0);
     private static final Color WHITE_COLOR = new Color(255, 255, 255);
 
+    /****** Status container ******/
+    JPanel scorePanel = new JPanel();
+    JPanel connectionPanel = new JPanel();
+    JPanel buttonPanel = new JPanel();
+    JPanel dialogPanel = new JPanel();
+
     /****** Score Panel ******/
     private JLabel lbBlack = new JLabel("Black: "); //TODO: change to icon later on
     private JLabel lbWhite = new JLabel("White: "); //TODO: change to icon later on
     private JLabel countBlack = new JLabel("0");
     private JLabel countWhite = new JLabel("0");
+
+    /****** Connection Panel ******/
+    private JPanel hostPanel = new JPanel();
+    private JPanel portPanel = new JPanel();
+    private JPanel btnPanel = new JPanel();
+    private JLabel lblHost = new JLabel("Host: ");
+    private JTextField txtHost = new JTextField();
+    private JLabel lblPort = new JLabel("Port: ");
+    private JTextField txtPort = new JTextField();
+    private JButton btnConnect = new JButton("Connect");
 
     /****** Dialog Panel ******/
     private JTextArea dialogArea = new JTextArea();
@@ -52,10 +71,6 @@ public class MainFrame extends JFrame implements MessageBoy{
         panelStatus.setPreferredSize(dStatus);
 
         /***** Status Container ******/
-        JPanel scorePanel = new JPanel();
-        ConnectionPanel connectionPanel = new ConnectionPanel();
-        JPanel buttonPanel = new JPanel();
-        JPanel dialogPanel = new JPanel();
         panelStatus.add(scorePanel);
         panelStatus.add(connectionPanel);
         panelStatus.add(buttonPanel);
@@ -63,9 +78,9 @@ public class MainFrame extends JFrame implements MessageBoy{
 
         /****** Score Panel ******/
         scorePanel.setLayout(new BoxLayout(scorePanel, BoxLayout.Y_AXIS));
-        Dimension dScore = new Dimension(200, 100);
-        Dimension dBlack = new Dimension(200, 50);
-        Dimension dWhite = new Dimension(200, 50);
+        Dimension dScore = new Dimension(200, 75);
+        Dimension dBlack = new Dimension(200, 37);
+        Dimension dWhite = new Dimension(200, 38);
         scorePanel.setPreferredSize(dScore);
         JPanel playerBlackPanel = new JPanel();
         playerBlackPanel.setPreferredSize(dBlack);
@@ -77,12 +92,41 @@ public class MainFrame extends JFrame implements MessageBoy{
         playerBlackPanel.add(countBlack);
         playerWhitePanel.add(lbWhite);
         playerWhitePanel.add(countWhite);
+        scorePanel.setVisible(false);
+
+        /****** Connection Panel ******/
+        connectionPanel.setLayout(new BoxLayout(connectionPanel, BoxLayout.Y_AXIS));
+        hostPanel.setLayout(new BoxLayout(hostPanel, BoxLayout.X_AXIS));
+        portPanel.setLayout(new BoxLayout(portPanel, BoxLayout.X_AXIS));
+        btnPanel.setLayout(new BoxLayout(btnPanel, BoxLayout.X_AXIS));
+        Dimension dContainer = new Dimension(200, 75);
+        Dimension dPanel = new Dimension(200, 25);
+        Dimension dLbl = new Dimension(40, 25);
+        Dimension dTxt = new Dimension(160, 25);
+        Dimension dBtn = new Dimension(100, 25);
+        connectionPanel.setPreferredSize(dContainer);
+        hostPanel.setPreferredSize(dPanel);
+        portPanel.setPreferredSize(dPanel);
+        btnPanel.setPreferredSize(dPanel);
+        lblHost.setPreferredSize(dLbl);
+        lblPort.setPreferredSize(dLbl);
+        txtHost.setPreferredSize(dTxt);
+        txtPort.setPreferredSize(dTxt);
+        btnConnect.setPreferredSize(dBtn);
+        connectionPanel.add(hostPanel);
+        connectionPanel.add(portPanel);
+        connectionPanel.add(btnPanel);
+        hostPanel.add(lblHost);
+        hostPanel.add(txtHost);
+        portPanel.add(lblPort);
+        portPanel.add(txtPort);
+        btnPanel.add(btnConnect);
 
         /****** Dialog Panel ******/
         dialogPanel.setLayout(new BoxLayout(dialogPanel, BoxLayout.Y_AXIS));
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
         Dimension dButton = new Dimension(200, 25);
-        Dimension dScroll = new Dimension(200, 300);
+        Dimension dScroll = new Dimension(200, 425);
         JScrollPane dialogScroll = new JScrollPane(dialogArea);
         dialogScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         buttonPanel.setPreferredSize(dButton);
@@ -109,18 +153,49 @@ public class MainFrame extends JFrame implements MessageBoy{
                 }
             }
         });
-        launch();
-        getMessage();
     }
 
     //main method access
     public static void main(String[] args) {
-        new MainFrame();
+        MainFrame mf = new MainFrame();
+        mf.login();
+    }
+
+    public void login(){
+        btnConnect.addMouseListener(new MouseAdapter() {
+        @Override
+        public void mouseClicked(MouseEvent e) {
+            super.mouseClicked(e);
+                host = txtHost.getText();
+                port = Integer.parseInt(txtPort.getText());
+                if (!txtHost.getText().equals("") && !txtPort.getText().equals("")) {
+                    if(connection()){
+                        connectionPanel.setVisible(false);
+                        scorePanel.setVisible(true);
+                        launch();
+                        getMessage();
+                    }
+                }else{
+                    //TODO: PopUp Window To Warning User About Host And Port
+                }
+            }
+        });
+    }
+
+    private boolean connection(){
+        try {
+            socket = new Socket(host, port);
+            if(socket.isConnected()){
+                connected = true;
+            }else{connected = false;}
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
+        return connected;
     }
 
     private void launch(){
         try {
-            socket = new Socket("127.0.0.1", 8888);
             btnReady.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
@@ -142,7 +217,7 @@ public class MainFrame extends JFrame implements MessageBoy{
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
                     int confirm;
-                    if(inGame) {
+                    if (inGame) {
                         confirm = JOptionPane.showConfirmDialog(null, "Are you sure to surrender?\nYour rival will win this game automatically!", "No", JOptionPane.YES_NO_OPTION);
                         if (confirm == 0) {
                             sendMessage("command", "surrender");
@@ -150,7 +225,7 @@ public class MainFrame extends JFrame implements MessageBoy{
                     }
                 }
             });
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -346,5 +421,4 @@ public class MainFrame extends JFrame implements MessageBoy{
         @Override
         public void mouseExited(MouseEvent e) {}
     }
-
 }
