@@ -32,8 +32,8 @@ public class MainFrame extends JFrame implements MessageBoy{
     JPanel dialogPanel = new JPanel();
 
     /****** Score Panel ******/
-    private JLabel lbBlack = new JLabel("Black: "); //TODO: change to icon later on
-    private JLabel lbWhite = new JLabel("White: "); //TODO: change to icon later on
+    private JLabel lbBlack = new JLabel("Black: ");
+    private JLabel lbWhite = new JLabel("White: ");
     private JLabel countBlack = new JLabel("0");
     private JLabel countWhite = new JLabel("0");
 
@@ -329,7 +329,6 @@ public class MainFrame extends JFrame implements MessageBoy{
 
     private class GamePanel extends JPanel implements MouseListener{
         int [][] piece = new int [8][8];
-        //Constructor
         GamePanel(int[][] piece){
             this.piece = piece;
             Dimension dMap = new Dimension(500, 500);
@@ -338,9 +337,6 @@ public class MainFrame extends JFrame implements MessageBoy{
             this.setPreferredSize(dMap);
         }
 
-        /**
-         * draw map
-         */
         private void drawMap(Graphics g) {
             //draw pieces
             for (int i = 0; i < 8; i++) {

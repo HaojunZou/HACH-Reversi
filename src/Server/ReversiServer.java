@@ -117,12 +117,15 @@ public class ReversiServer extends JFrame{
                     JSONObject jsonGet = new JSONObject(command);
                     if(command.contains("\"quit\":")){
                         if(jsonGet.get("quit").equals("yes")){
-                            gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
-                                sendMessage(p, "message", "Your rival left the game!");
-                            });
-                            gameEnd(gameQueue);
-                            serverUpdate();
-                            break;
+                            if(player.isInGame()) {
+                                gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
+                                    sendMessage(p, "message", ">>> Your rival left the game!");
+                                });
+                                gameUpdate(gameQueue);
+                                gameEnd(gameQueue);
+                                serverUpdate();
+                                break;
+                            }
                         }
                     } else{
                         Command(command);
@@ -200,9 +203,10 @@ public class ReversiServer extends JFrame{
                     } else if(jsonGet.get("command").toString().equals("surrender")){
                         //no matter who has more pieces in the map, surrender will affect the opponent wins
                         gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
-                            sendMessage(p, "message", "Your rival surrendered!");
+                            sendMessage(p, "message", ">>> Your rival surrendered!");
                         });
-                        sendAllMessage(gameQueue, "message", (player.getColor()==1) ? "White wins!" : "Black wins!");
+                        sendAllMessage(gameQueue, "message", (player.getColor()==1) ? ">>> White wins!" : ">>> Black wins!");
+                        gameUpdate(gameQueue);
                         gameEnd(gameQueue);
                     }
                 } else if (cmd.contains("\"move\":")) {
@@ -223,22 +227,22 @@ public class ReversiServer extends JFrame{
                                     (algorithm.getCurrentPlayer() == 1) ?
                                             ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
                                             : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
-                            sendMessage(player, "message", "Your rival pass, go on!");
+                            sendMessage(player, "message", ">>> Your rival pass, go on!");
                             Player passPlayer = null;
                             for (Player p : gameQueue) {
                                 if (p != player)
                                     passPlayer = p;
                             }
                             assert passPlayer != null;
-                            sendMessage(passPlayer, "message", "Pass!");
+                            sendMessage(passPlayer, "message", ">>> Pass!");
                             gameUpdate(gameQueue);
                         } else if (nextPlayer == 64) {   //if no player can move, game over
                             if ((getScore()[0]) > (getScore()[1]))
-                                sendAllMessage(gameQueue, "message", "Black wins!");
+                                sendAllMessage(gameQueue, "message", ">>> Black wins!");
                             else if ((getScore()[0]) < (getScore()[1]))
-                                sendAllMessage(gameQueue, "message", "White wins!");
+                                sendAllMessage(gameQueue, "message", ">>> White wins!");
                             else
-                                sendAllMessage(gameQueue, "message", "Draw!");
+                                sendAllMessage(gameQueue, "message", ">>> Draw!");
                             gameUpdate(gameQueue);
                             gameEnd(gameQueue);
                         }
@@ -253,10 +257,10 @@ public class ReversiServer extends JFrame{
             printLog("One game started");
             players.getFirst().setColor(1);   //black player
             players.getFirst().setInGame(true);   //set player status
-            sendMessage(players.getFirst(), "message", "Game started!\nYou play as black");
+            sendMessage(players.getFirst(), "message", ">>> Game started!\nYou play as black");
             players.getLast().setColor(-1);   //white player
             players.getLast().setInGame(true);
-            sendMessage(players.getLast(), "message", "Game started!\nYou play as white");
+            sendMessage(players.getLast(), "message", ">>> Game started!\nYou play as white");
             sendAllMessage(players, "game", "on");   //tell client change status
             gameUpdate(players);
             serverUpdate();
@@ -267,9 +271,8 @@ public class ReversiServer extends JFrame{
             for(Player p : players){
                 p.setInGame(false);
                 sendMessage(p, "game", "off");
-                sendMessage(p, "message", "Game Over!");
+                sendMessage(p, "message", ">>> Game Over!");
             }
-            gameUpdate(players);
             gameQueue.clear();
             serverUpdate();
             printLog("One game ended");
@@ -322,6 +325,7 @@ public class ReversiServer extends JFrame{
                 } finally {
                     for(Player p : gameQueue){
                         p.setInGame(false);
+                        gameUpdate(gameQueue);
                     }
                     sendAllMessage(gameQueue, "game", "off");
                     gameEnd(gameQueue);
