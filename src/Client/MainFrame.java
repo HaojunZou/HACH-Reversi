@@ -163,20 +163,22 @@ public class MainFrame extends JFrame implements MessageBoy{
 
     public void login(){
         btnConnect.addMouseListener(new MouseAdapter() {
-        @Override
-        public void mouseClicked(MouseEvent e) {
-            super.mouseClicked(e);
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
                 host = txtHost.getText();
-                port = Integer.parseInt(txtPort.getText());
-                if (!txtHost.getText().equals("") && !txtPort.getText().equals("")) {
+                if(txtHost.getText().equals(""))
+                    JOptionPane.showMessageDialog(connectionPanel, "Please enter host address!");
+                else if (txtPort.getText().equals(""))
+                    JOptionPane.showMessageDialog(connectionPanel, "Please enter port!");
+                else{
+                    port = Integer.parseInt(txtPort.getText());
                     if(connection()){
                         connectionPanel.setVisible(false);
                         scorePanel.setVisible(true);
                         launch();
                         getMessage();
                     }
-                }else{
-                    //TODO: PopUp Window To Warning User About Host And Port
                 }
             }
         });
@@ -187,9 +189,11 @@ public class MainFrame extends JFrame implements MessageBoy{
             socket = new Socket(host, port);
             if(socket.isConnected()){
                 connected = true;
-            }else{connected = false;}
-        } catch (IOException e1) {
-            e1.printStackTrace();
+            }else{connected = false;
+
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(connectionPanel, "Your are entering wrong host or port number");
         }
         return connected;
     }
