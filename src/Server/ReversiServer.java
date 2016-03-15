@@ -117,14 +117,10 @@ public class ReversiServer extends JFrame{
                     JSONObject jsonGet = new JSONObject(command);
                     if(command.contains("\"quit\":")){
                         if(jsonGet.get("quit").equals("yes")){
-                            if(player.isInGame()){
-                                gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
-                                    sendMessage(p, "message", "Your rival left the game!");
-                                    gameEnd(gameQueue);
-                                });
-                            }else
-                                break;
-                            player.getSocket().shutdownInput();
+                            gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
+                                sendMessage(p, "message", "Your rival left the game!");
+                            });
+                            gameEnd(gameQueue);
                             serverUpdate();
                             break;
                         }
@@ -277,7 +273,6 @@ public class ReversiServer extends JFrame{
             gameQueue.clear();
             serverUpdate();
             printLog("One game ended");
-            gameOver = true;
             algorithm = new Algorithm();
         }
 

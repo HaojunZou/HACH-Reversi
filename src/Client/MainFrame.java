@@ -133,6 +133,8 @@ public class MainFrame extends JFrame implements MessageBoy{
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
                     sendMessage("command", "notReady");
+                    btnNotReady.setVisible(false);
+                    btnReady.setVisible(true);
                 }
             });
             btnSurrender.addMouseListener(new MouseAdapter() {
