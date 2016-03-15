@@ -7,6 +7,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class MainFrame extends JFrame implements MessageBoy{
     private Socket socket = null;
@@ -172,12 +173,16 @@ public class MainFrame extends JFrame implements MessageBoy{
                 else if (txtPort.getText().equals(""))
                     JOptionPane.showMessageDialog(connectionPanel, "Please enter port!");
                 else{
-                    port = Integer.parseInt(txtPort.getText());
-                    if(connection()){
-                        connectionPanel.setVisible(false);
-                        scorePanel.setVisible(true);
-                        launch();
-                        getMessage();
+                    try {
+                        port = Integer.parseInt(txtPort.getText());
+                        if(connection()){
+                            connectionPanel.setVisible(false);
+                            scorePanel.setVisible(true);
+                            launch();
+                            getMessage();
+                        }
+                    }catch (NumberFormatException e1){
+                        JOptionPane.showMessageDialog(connectionPanel, "Port has to be a number!");
                     }
                 }
             }
@@ -187,13 +192,9 @@ public class MainFrame extends JFrame implements MessageBoy{
     private boolean connection(){
         try {
             socket = new Socket(host, port);
-            if(socket.isConnected()){
-                connected = true;
-            }else{connected = false;
-
-            }
+            connected = socket.isConnected();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(connectionPanel, "Your are entering wrong host or port number");
+            JOptionPane.showMessageDialog(connectionPanel, "You are entering wrong host or port number");
         }
         return connected;
     }
