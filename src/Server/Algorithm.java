@@ -8,6 +8,7 @@ class Algorithm {
     private int currentPlayer = 1; // current piece
 
     Algorithm(){
+        //initialize map
         piece[3][3] = WHITE;
         piece[3][4] = BLACK;
         piece[4][3] = BLACK;
@@ -18,8 +19,28 @@ class Algorithm {
         piece[4][5] = AVAILABLE;
     }
 
+    /**
+     * show current map with available place
+     * @return map
+     */
     int[][] getCurrentMap(){
         return piece;
+    }
+
+    /**
+     * show current map without available place
+     * @return map
+     */
+    int[][] getCurrentMapWithoutAva(){
+        int [][] tmp = piece;
+        for(int x=0; x<8; x++){
+            for(int y=0; y<8; y++){
+                if(tmp[x][y] == 2){
+                    tmp[x][y] = 0;
+                }
+            }
+        }
+        return tmp;
     }
 
     int getCurrentPlayer(){
@@ -30,7 +51,11 @@ class Algorithm {
 
     int getCountWhite(){ return countScore(-1); }
 
-    //counter the score
+    /**
+     * show current score
+     * @param cur: player color
+     * @return player score
+     */
     private int countScore(int cur){
         int score = 0;
         for(int xe=0; xe<8; xe++){
@@ -45,8 +70,8 @@ class Algorithm {
 
     /**
      * move function
-     * @param x
-     * @param y
+     * @param x: x-coordinate
+     * @param y: y-coordinate
      * @return next player color
      */
     int move(int x, int y){
@@ -56,7 +81,7 @@ class Algorithm {
             currentPlayer *= -1;    //switch the player
             if (shouldPass(currentPlayer)) {  //if the opponent player has not available place
                 if (shouldPass(-currentPlayer)) {    //check self should pass
-                    currentPlayer = 64;
+                    currentPlayer *= -64;   //flag shows game over
                 } else {    //if not, switch player
                     System.out.println("Pass!");
                     currentPlayer *= -1;
@@ -68,9 +93,9 @@ class Algorithm {
     }
 
     /**
-     * draw available place
-     * @param cur: player face
-     * @return true if current player has no available place
+     * check if the current player should pass
+     * @param cur: player color
+     * @return true if current player should pass
      */
     private boolean shouldPass(int cur){
         //restore all available places from last round to empty
@@ -99,12 +124,11 @@ class Algorithm {
 
     private boolean checkLocation(int cur, int i, int j, boolean execute) {
         return !(piece[i][j] == BLACK || piece[i][j] == WHITE) && availablePlace(cur, i, j, execute);
-//        return availablePlace(cur, i, j, execute);
     }
 
     /**
      * validate the place beside the current position
-     * @param cur: player face
+     * @param cur: player color
      * @param i: x-coordinate
      * @param j: y-coordinate
      * @param execute: if need to be executed
@@ -124,7 +148,7 @@ class Algorithm {
             //follow this direction, if the piece beside the current place is opponent piece
             if(piece[i+1][j]==-cur){
                 //do a piece search in this direction. if at least one friend has been found,
-                //it will retrun true, if not, it will return false.
+                //it will return true, if not, it will return false.
                 if(searchEnd(cur, i, j, "TO_EAST", execute))
                     //if search has been executed, search actions increasing by one.
                     nw_corner_search_action ++;
@@ -345,8 +369,8 @@ class Algorithm {
     }
 
     /**
-     * search if there's same face on the other head from the current position
-     * @param cur: player face
+     * search if there's same color on the other head from the current position
+     * @param cur: player color
      * @param i: x-coordinate
      * @param j: y-coordinate
      * @param direction: direction

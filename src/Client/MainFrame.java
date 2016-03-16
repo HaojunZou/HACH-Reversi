@@ -6,8 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import java.net.*;
 
 public class MainFrame extends JFrame implements MessageBoy{
     private Socket socket = null;
@@ -159,7 +158,7 @@ public class MainFrame extends JFrame implements MessageBoy{
         this.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
                 try {
-                    sendMessage("quit", "yes");
+                    sendMessage("quit", "yes"); //send quit command to server
                     System.exit(0);
                 } catch (Exception e1) {
                     e1.printStackTrace();
@@ -191,7 +190,7 @@ public class MainFrame extends JFrame implements MessageBoy{
                 else{
                     try {
                         port = Integer.parseInt(txtPort.getText());
-                        if(connection()){
+                        if(connection()){   //if connection is successful
                             connectionPanel.setVisible(false);
                             scorePanel.setVisible(true);
                             launch();
@@ -217,14 +216,14 @@ public class MainFrame extends JFrame implements MessageBoy{
 
     private void launch(){
         try {
-            btnReady.addMouseListener(new MouseAdapter() {
+            btnReady.addMouseListener(new MouseAdapter() {  //ready button listener
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
                     sendMessage("command", "ready");
                 }
             });
-            btnNotReady.addMouseListener(new MouseAdapter() {
+            btnNotReady.addMouseListener(new MouseAdapter() {   //not ready button listener
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
@@ -233,24 +232,22 @@ public class MainFrame extends JFrame implements MessageBoy{
                     btnReady.setVisible(true);
                 }
             });
-            btnSurrender.addMouseListener(new MouseAdapter() {
+            btnSurrender.addMouseListener(new MouseAdapter() {  //surrender button listener
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
                     int confirm;
                     if (inGame) {
                         confirm = JOptionPane.showConfirmDialog(null, "Are you sure to surrender?\nYour rival will win this game automatically!", "No", JOptionPane.YES_NO_OPTION);
-                        if (confirm == 0) {
-                            sendMessage("command", "surrender");
-                        }
+                        if (confirm == 0) sendMessage("command", "surrender");
                     }
                 }
             });
-            txtChat.addActionListener(e -> {
+            txtChat.addActionListener(e -> {    //chat field listener
                 sendChatMessage(txtChat.getText());
                 txtChat.setText("");
             });
-            btnSend.addActionListener(e -> {
+            btnSend.addActionListener(e -> {    //send button listener
                 sendChatMessage(txtChat.getText());
                 txtChat.setText("");
             });
@@ -259,11 +256,18 @@ public class MainFrame extends JFrame implements MessageBoy{
         }
     }
 
+    /**
+     * send chat message to server
+     * @param msg: message content
+     */
     private void sendChatMessage(String msg){
         if(!(msg).equals(""))
             sendMessage("chat", msg);
     }
 
+    /**
+     * get messages from server
+     */
     @Override
     public void getMessage(){
         new Thread(){
@@ -282,6 +286,11 @@ public class MainFrame extends JFrame implements MessageBoy{
         }.start();
     }
 
+    /**
+     * send message to server
+     * @param key: json key
+     * @param value: json value
+     */
     @Override
     public void sendMessage(String key, Object value){
         try {
@@ -299,41 +308,45 @@ public class MainFrame extends JFrame implements MessageBoy{
         }
     }
 
+    /**
+     * command get from server
+     * @param cmd: command content
+     */
     private void Command(String cmd) {
         JSONObject jsonGet = new JSONObject(cmd);
         try {
-            if (cmd.contains("\"show\":")) {
+            if (cmd.contains("\"show\":")) {    //refresh game map
                 String mapString = jsonGet.get("show").toString();
                 refreshMap(mapString);
-            } else if (cmd.contains("\"message\":")) {
+            } else if (cmd.contains("\"message\":")) {  //print message in message area
                 dialogArea.append(jsonGet.get("message").toString() + "\n");
-                dialogArea.setCaretPosition(dialogArea.getText().length());
-            } else if (cmd.contains("\"score\":")) {
+                dialogArea.setCaretPosition(dialogArea.getText().length()); //keep the last line on the bottom
+            } else if (cmd.contains("\"score\":")) {    //show score in the corner
                 countBlack.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[0]);
                 countWhite.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[1]);
-            } else if(cmd.contains("\"game\":")){
-                if(jsonGet.get("game").toString().equals("on")) {
+            } else if(cmd.contains("\"game\":")){   //game status change command from server
+                if(jsonGet.get("game").toString().equals("on")) {   //player in game
                     btnReady.setVisible(false);
                     btnNotReady.setVisible(false);
                     btnSurrender.setEnabled(true);
                     txtChat.setEnabled(true);
                     btnSend.setEnabled(true);
                     inGame = true;
-                } else if(jsonGet.get("game").toString().equals("off")) {
+                } else if(jsonGet.get("game").toString().equals("off")) {   //player out of game
                     inGame = false;
                     btnReady.setVisible(true);
                     btnNotReady.setVisible(false);
                     btnSurrender.setEnabled(false);
                     txtChat.setEnabled(false);
                     btnSend.setEnabled(false);
-                } else if(jsonGet.get("game").toString().equals("ready")) {
+                } else if(jsonGet.get("game").toString().equals("ready")) { //player is allowed to be ready
                     inGame = false;
                     btnReady.setVisible(false);
                     btnNotReady.setVisible(true);
                     btnSurrender.setEnabled(false);
                     txtChat.setEnabled(false);
                     btnSend.setEnabled(false);
-                } else if(jsonGet.get("game").toString().equals("wait")) {
+                } else if(jsonGet.get("game").toString().equals("wait")) {  //player is not allowed to be ready
                     inGame = false;
                     btnReady.setVisible(true);
                     btnNotReady.setVisible(false);
@@ -341,12 +354,12 @@ public class MainFrame extends JFrame implements MessageBoy{
                     txtChat.setEnabled(false);
                     btnSend.setEnabled(false);
                 }
-            } else if(cmd.contains("\"current\":")){
+            } else if(cmd.contains("\"current\":")){    //get the current player color from server
                 if (jsonGet.get("current").toString().equals("1"))
                     currentPlayer = 1;
                 else if (jsonGet.get("current").toString().equals("-1"))
                     currentPlayer = -1;
-            } else if(cmd.contains("\"warning\":")){
+            } else if(cmd.contains("\"warning\":")){    //show warning message
                 JOptionPane.showMessageDialog(null, jsonGet.get("warning").toString());
             }
         }catch (Exception e){
@@ -354,6 +367,11 @@ public class MainFrame extends JFrame implements MessageBoy{
         }
     }
 
+    /**
+     * refresh game map
+     * @param jsonString: map json value
+     * @return current map
+     */
     private int[][] refreshMap(String jsonString){
         int[][] newMap = new int [8][8];
         String [] stringArray = jsonString.replace("[", "").replace("]", "").split(",");
@@ -369,6 +387,7 @@ public class MainFrame extends JFrame implements MessageBoy{
         return newMap;
     }
 
+    //game map panel
     private class GamePanel extends JPanel implements MouseListener{
         int [][] piece = new int [8][8];
         GamePanel(int[][] piece){
@@ -379,8 +398,11 @@ public class MainFrame extends JFrame implements MessageBoy{
             this.setPreferredSize(dMap);
         }
 
+        /**
+         * draw current map
+         * @param g: pencil
+         */
         private void drawMap(Graphics g) {
-            //draw pieces
             for (int i = 0; i < 8; i++) {
                 for (int j = 0; j < 8; j++) {
                     if (piece[i][j] != 0) {	//if there's piece in place
@@ -413,7 +435,6 @@ public class MainFrame extends JFrame implements MessageBoy{
                     g.fillOval(5, 5, 40, 40);
                 }
             }
-
             //draw horizontal lines
             for (int i = 0; i <= 8; i++) {
                 g.drawLine(50, 50 * i + 50, 450, 50 * i + 50);

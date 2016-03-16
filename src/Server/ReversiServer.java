@@ -92,6 +92,7 @@ public class ReversiServer extends JFrame{
         }
     }
 
+    //client thread
     private class ClientThread implements Runnable, MessageBoy{
         Player player;
         boolean gameOver = false;
@@ -111,18 +112,18 @@ public class ReversiServer extends JFrame{
             BufferedReader bufferedReader;
             try {
                 bufferedReader = new BufferedReader(new InputStreamReader(player.getSocket().getInputStream(), "UTF-8"));
-                sendMessage(player, "message", "--- Welcome to HACH-Reversi ---");
+                sendMessage(player, "message", "--- Welcome to HACH-Reversi ---\n>>> Click [Ready] button");
                 String command;
                 while ((command = bufferedReader.readLine()) != null) {
                     JSONObject jsonGet = new JSONObject(command);
-                    if(command.contains("\"quit\":")){
+                    if(command.contains("\"quit\":")){  //if get quit command from client, tell the other player
                         if(jsonGet.get("quit").equals("yes")){
                             if(player.isInGame()) {
                                 gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
                                     sendMessage(p, "message", ">>> Your rival left the game!");
                                 });
                                 gameUpdate(gameQueue);
-                                gameEnd(gameQueue);
+                                gameEnd(gameQueue); //game should not keep running after that
                                 serverUpdate();
                                 break;
                             }
@@ -144,6 +145,12 @@ public class ReversiServer extends JFrame{
             }
         }
 
+        /**
+         * send message to current player
+         * @param player: current player
+         * @param key: json key
+         * @param value: json value
+         */
         @Override
         public void sendMessage(Player player, String key, Object value){
             try {
@@ -161,6 +168,12 @@ public class ReversiServer extends JFrame{
             }
         }
 
+        /**
+         * send message to both player
+         * @param players: players in game
+         * @param key: json key
+         * @param value: json value
+         */
         @Override
         public void sendAllMessage(LinkedList<Player> players, String key, Object value){
             try {
@@ -180,6 +193,10 @@ public class ReversiServer extends JFrame{
             }
         }
 
+        /**
+         * get command from client
+         * @param cmd: command content
+         */
         private void Command(String cmd) {
             JSONObject jsonGet = new JSONObject(cmd);
             try {
@@ -190,17 +207,17 @@ public class ReversiServer extends JFrame{
                             sendMessage(player, "warning", "There's a game running, please try ready later...");
                         }
                         else {
-                            gameQueue.add(player);
-                            if(gameQueue.size() < 2)
+                            gameQueue.add(player);  //add player to game queue
+                            if(gameQueue.size() < 2)    //if there's only one player, send allow ready
                                 sendMessage(player, "game", "ready");
                             else if (gameQueue.size() == 2)  //if game queue has two players, start a game
                                 gameStart(gameQueue);
                         }
                         serverUpdate();
-                    } else if(jsonGet.get("command").equals("notReady")){
+                    } else if(jsonGet.get("command").equals("notReady")){   //if player don't want to be ready
                         gameQueue.remove(player);
                         serverUpdate();
-                    } else if(jsonGet.get("command").toString().equals("surrender")){
+                    } else if(jsonGet.get("command").toString().equals("surrender")){   //if player want surrender
                         //no matter who has more pieces in the map, surrender will affect the opponent wins
                         gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
                             sendMessage(p, "message", ">>> Your rival surrendered!");
@@ -209,8 +226,8 @@ public class ReversiServer extends JFrame{
                         gameUpdate(gameQueue);
                         gameEnd(gameQueue);
                     }
-                } else if (cmd.contains("\"move\":")) {
-                    if (player.getColor() == algorithm.getCurrentPlayer()) {
+                } else if (cmd.contains("\"move\":")) { //player put a piece in the map
+                    if (player.getColor() == algorithm.getCurrentPlayer()) {    //if it's the current player move
                         int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
                         int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
                         int nextPlayer = algorithm.move(x, y);
@@ -234,57 +251,86 @@ public class ReversiServer extends JFrame{
                                     passPlayer = p;
                             }
                             assert passPlayer != null;
+                            gameUpdate(gameQueue);
                             sendMessage(passPlayer, "message", ">>> Pass!");
+                        } else if(nextPlayer == 64 || nextPlayer == -64){   //if no player can move, game over
+                            sendAllMessage(gameQueue, "message",
+                                    ((algorithm.getCurrentPlayer()/64) == 1) ?
+                                            ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
+                                            : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
                             gameUpdate(gameQueue);
-                        } else if (nextPlayer == 64) {   //if no player can move, game over
-                            if ((getScore()[0]) > (getScore()[1]))
-                                sendAllMessage(gameQueue, "message", ">>> Black wins!");
-                            else if ((getScore()[0]) < (getScore()[1]))
-                                sendAllMessage(gameQueue, "message", ">>> White wins!");
-                            else
-                                sendAllMessage(gameQueue, "message", ">>> Draw!");
-                            gameUpdate(gameQueue);
-                            gameEnd(gameQueue);
                         }
                     }
-                } else if(cmd.contains("\"chat\":")){
+                } else if(cmd.contains("\"chat\":")){   //get chat message
                     sendAllMessage(gameQueue, "message", ((player.getColor() == 1) ? "Black say: " : "White say: ") + jsonGet.get("chat"));
                 }
             }catch (Exception e) {
             }
         }
 
+        /**
+         * initialize game
+         * @param players: two ready players
+         */
         private void gameStart(LinkedList<Player> players){
             gameOver = false;
             printLog("One game started");
             players.getFirst().setColor(1);   //black player
             players.getFirst().setInGame(true);   //set player status
-            sendMessage(players.getFirst(), "message", ">>> Game started!\nYou play as black");
             players.getLast().setColor(-1);   //white player
             players.getLast().setInGame(true);
-            sendMessage(players.getLast(), "message", ">>> Game started!\nYou play as white");
+            sendAllMessage(players, "message", "---------------------------------------------");
+            sendMessage(players.getFirst(), "message", ">>> Rival found!\n>>> Game started!\n>>> You play as black");
+            sendMessage(players.getLast(), "message", ">>> Rival found!\n>>> Game started!\n>>> You play as white");
             sendAllMessage(players, "game", "on");   //tell client change status
             gameUpdate(players);
             serverUpdate();
             new Thread(new Game()).start(); //new thread for a game
         }
 
+        /**
+         * game end
+         * @param players: two in game players
+         */
         private void gameEnd(LinkedList<Player> players){
             for(Player p : players){
                 p.setInGame(false);
                 sendMessage(p, "game", "off");
                 sendMessage(p, "message", ">>> Game Over!");
             }
-            gameQueue.clear();
+            gameQueue.clear();  //empty the game queue
             serverUpdate();
             printLog("One game ended");
-            algorithm = new Algorithm();
+            algorithm = new Algorithm();    //restore the algorithm
         }
 
+        /**
+         * during the game
+         * @param players: two in game players
+         */
         private void gameUpdate(LinkedList<Player> players){
             sendAllMessage(players, "current", algorithm.getCurrentPlayer());    //send current player move
-            sendAllMessage(players, "show", algorithm.getCurrentMap());  //send map
             sendAllMessage(players, "score", getScore());    //send current score
+            Player curP = null; //the current player
+            Player rivP = null; //the rival player
+            for(Player p : players){    //send map
+                if(p.getColor() == algorithm.getCurrentPlayer())
+                    curP = p;
+                else if(p.getColor() == -algorithm.getCurrentPlayer())
+                    rivP = p;
+                else {
+                    sendAllMessage(players, "show", algorithm.getCurrentMapWithoutAva());   //show map just before game over
+                    if ((getScore()[0]) > (getScore()[1]))
+                        sendAllMessage(players, "message", ">>> Black wins!");
+                    else if ((getScore()[0]) < (getScore()[1]))
+                        sendAllMessage(players, "message", ">>> White wins!");
+                    else
+                        sendAllMessage(players, "message", ">>> Draw!");
+                    gameEnd(players);
+                }
+            }
+            sendMessage(curP, "show", algorithm.getCurrentMap());   //show map with hint position
+            sendMessage(rivP, "show", algorithm.getCurrentMapWithoutAva()); //show map without hint position
         }
 
         private int[] getScore(){
@@ -326,13 +372,13 @@ public class ReversiServer extends JFrame{
                     e.printStackTrace();
                 } finally {
                     for(Player p : gameQueue){
-                        p.setInGame(false);
+                        p.setInGame(false); //restore players status to not in game
                         gameUpdate(gameQueue);
                     }
                     sendAllMessage(gameQueue, "game", "off");
                     gameEnd(gameQueue);
                     serverUpdate();
-                    gameQueue.clear();
+                    gameQueue.clear();  //remove all players from game queue
                 }
             }
         }   //end of Game thread

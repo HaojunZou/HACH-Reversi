@@ -15,16 +15,16 @@ public class Player {
         this.color = color;
     }
 
+    public void setInGame(boolean inGame) {
+        this.inGame = inGame;
+    }
+
     public Socket getSocket() {
         return socket;
     }
 
     public int getColor() {
         return color;
-    }
-
-    public void setInGame(boolean inGame) {
-        this.inGame = inGame;
     }
 
     public boolean isInGame() {
