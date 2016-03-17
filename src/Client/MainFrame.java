@@ -175,6 +175,19 @@ public class MainFrame extends JFrame implements MessageBoy{
     public static void main(String[] args) {
         MainFrame mf = new MainFrame();
         mf.login();
+
+        JMenuBar menuBar = new JMenuBar();
+
+        // File Menu, F - Mnemonic
+        JMenu fileMenu = new JMenu("Start");
+        fileMenu.setMnemonic(KeyEvent.VK_F);
+        menuBar.add(fileMenu);
+
+        // File->New, N - Mnemonic
+        JMenuItem newMenuItem = new JMenuItem("Help", KeyEvent.VK_N);
+        fileMenu.add(newMenuItem);
+
+        mf.setJMenuBar(menuBar);
     }
 
     private void login(){
