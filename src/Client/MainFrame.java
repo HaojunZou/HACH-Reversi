@@ -62,7 +62,7 @@ public class MainFrame extends JFrame implements MessageBoy{
     private MainFrame() {
         /****** Main Frame ******/
         this.setTitle("HACH-Reversi");
-        this.setSize(700, 525);
+        this.setSize(700, 550);
         this.setBackground(BACKGROUND_COLOR);
         this.setVisible(true);
         this.setResizable(false);
@@ -70,9 +70,19 @@ public class MainFrame extends JFrame implements MessageBoy{
         this.add("East", panelStatus);
         this.add("Center", gamePanel);
 
+        JMenuBar menuBar = new JMenuBar();
+        // File Menu, F - Mnemonic
+        JMenu fileMenu = new JMenu("Help");
+        fileMenu.setMnemonic(KeyEvent.VK_F);
+        menuBar.add(fileMenu);
+        // File->New, N - Mnemonic
+        JMenuItem newMenuItem = new JMenuItem("How to play", KeyEvent.VK_N);
+        fileMenu.add(newMenuItem);
+        this.setJMenuBar(menuBar);
+
         /****** Status Panel ******/
         panelStatus.setLayout(new BoxLayout(panelStatus, BoxLayout.Y_AXIS));
-        Dimension dStatus = new Dimension(200, 525);
+        Dimension dStatus = new Dimension(200, 550);
         panelStatus.setPreferredSize(dStatus);
 
         /***** Status Container ******/
@@ -139,7 +149,7 @@ public class MainFrame extends JFrame implements MessageBoy{
 
         /****** Dialog Panel ******/
         dialogPanel.setLayout(new BoxLayout(dialogPanel, BoxLayout.Y_AXIS));
-        Dimension dScroll = new Dimension(200, 425);
+        Dimension dScroll = new Dimension(200, 450);
         JScrollPane dialogScroll = new JScrollPane(dialogArea);
         dialogScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         dialogScroll.setPreferredSize(dScroll);
@@ -158,7 +168,8 @@ public class MainFrame extends JFrame implements MessageBoy{
         this.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
                 try {
-                    sendMessage("quit", "yes"); //send quit command to server
+                    if(socket != null)
+                        sendMessage("quit", "yes");
                     System.exit(0);
                 } catch (Exception e1) {
                     e1.printStackTrace();
@@ -175,19 +186,6 @@ public class MainFrame extends JFrame implements MessageBoy{
     public static void main(String[] args) {
         MainFrame mf = new MainFrame();
         mf.login();
-
-        JMenuBar menuBar = new JMenuBar();
-
-        // File Menu, F - Mnemonic
-        JMenu fileMenu = new JMenu("Start");
-        fileMenu.setMnemonic(KeyEvent.VK_F);
-        menuBar.add(fileMenu);
-
-        // File->New, N - Mnemonic
-        JMenuItem newMenuItem = new JMenuItem("Help", KeyEvent.VK_N);
-        fileMenu.add(newMenuItem);
-
-        mf.setJMenuBar(menuBar);
     }
 
     private void login(){

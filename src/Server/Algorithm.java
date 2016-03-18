@@ -137,226 +137,57 @@ class Algorithm {
     private boolean availablePlace(int cur, int i, int j, boolean execute) {
         if(execute)
             System.out.println("Player: " + (cur==1 ? "Black" : "White"));
-
         boolean result = false;
-
-        //NW corner
-        //those places in map called north west corner
-        if(i>=0 && i<2 && j>=0 && j<2){
-            //times of search actions been executed
-            int nw_corner_search_action = 0;
-            //follow this direction, if the piece beside the current place is opponent piece
-            if(piece[i+1][j]==-cur){
-                //do a piece search in this direction. if at least one friend has been found,
-                //it will return true, if not, it will return false.
-                if(searchEnd(cur, i, j, "TO_EAST", execute))
-                    //if search has been executed, search actions increasing by one.
-                    nw_corner_search_action ++;
-            }
-            if(piece[i+1][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SE", execute))
-                    nw_corner_search_action ++;
-            }
-            if(piece[i][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SOUTH", execute))
-                    nw_corner_search_action ++;
-            }
-            //at least one search actions has been executed, it will return true, it means this place is available.
-            result = nw_corner_search_action > 0;
-        }
-
-        //NE corner
-        if(i>5 && i<=7 && j>=0 && j<2){
-            int ne_corner_search_action = 0;
-            if(piece[i][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SOUTH", execute))
-                    ne_corner_search_action ++;
-            }
-            if(piece[i-1][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SW", execute))
-                    ne_corner_search_action ++;
-            }
-            if(piece[i-1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_WEST", execute))
-                    ne_corner_search_action ++;
-            }
-            result = ne_corner_search_action > 0;
-        }
-
-        //SE corner
-        if(i>5 && i<=7 && j>5 && j<=7){
-            int se_corner_search_action = 0;
-            if(piece[i-1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_WEST", execute))
-                    se_corner_search_action ++;
-            }
-            if(piece[i-1][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NW", execute))
-                    se_corner_search_action ++;
-            }
-            if(piece[i][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NORTH", execute))
-                    se_corner_search_action ++;
-            }
-            result = se_corner_search_action > 0;
-        }
-
-        //SW corner
-        if(i>=0 && i<2 && j>5 && j<=7){
-            int sw_corner_search_action = 0;
-            if(piece[i][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NORTH", execute))
-                    sw_corner_search_action ++;
-            }
-            if(piece[i+1][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NE", execute))
-                    sw_corner_search_action ++;
-            }
-            if(piece[i+1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_EAST", execute))
-                    sw_corner_search_action ++;
-            }
-            result = sw_corner_search_action > 0;
-        }
-
-        //NORTH edge
-        if(i>1 && i<6 && j>=0 && j<2){
-            int north_edge_search_action = 0;
-            if(piece[i+1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_EAST", execute))
-                    north_edge_search_action ++;
-            }
-            if(piece[i+1][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SE", execute))
-                    north_edge_search_action ++;
-            }
-            if(piece[i][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SOUTH", execute))
-                    north_edge_search_action ++;
-            }
-            if(piece[i-1][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SW", execute))
-                    north_edge_search_action ++;
-            }
-            if(piece[i-1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_WEST", execute))
-                    north_edge_search_action ++;
-            }
-            result = north_edge_search_action > 0;
-        }
-
-        //EAST edge
-        if(i>5 && i<=7 && j>1 && j<6){
-            int east_edge_search_action = 0;
-            if(piece[i][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SOUTH", execute))
-                    east_edge_search_action ++;
-            }
-            if(piece[i-1][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SW", execute))
-                    east_edge_search_action ++;
-            }
-            if(piece[i-1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_WEST", execute))
-                    east_edge_search_action ++;
-            }
-            if(piece[i-1][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NW", execute))
-                    east_edge_search_action ++;
-            }
-            if(piece[i][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NORTH", execute))
-                    east_edge_search_action ++;
-            }
-            result = east_edge_search_action > 0;
-        }
-
-        //SOUTH edge
-        if(i>1 && i<6 && j>5 && j<=7){
-            int south_edge_search_action = 0;
-            if(piece[i-1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_WEST", execute))
-                    south_edge_search_action ++;
-            }
-            if(piece[i-1][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NW", execute))
-                    south_edge_search_action ++;
-            }
-            if(piece[i][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NORTH", execute))
-                    south_edge_search_action ++;
-            }
-            if(piece[i+1][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NE", execute))
-                    south_edge_search_action ++;
-            }
-            if(piece[i+1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_EAST", execute))
-                    south_edge_search_action ++;
-            }
-            result = south_edge_search_action > 0;
-        }
-
-        //WEST edge
-        if(i<2 && j>1 && j<6){
-            int west_edge_search_action = 0;
-            if(piece[i][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NORTH", execute))
-                    west_edge_search_action ++;
-            }
-            if(piece[i+1][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NE", execute))
-                    west_edge_search_action ++;
-            }
-            if(piece[i+1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_EAST", execute))
-                    west_edge_search_action ++;
-            }
-            if(piece[i+1][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SE", execute))
-                    west_edge_search_action ++;
-            }
-            if(piece[i][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SOUTH", execute))
-                    west_edge_search_action ++;
-            }
-            result = west_edge_search_action > 0;
-        }
-
-        //Middle pieces
-        if(i>1 && i<6 && j>1 && j<6){
+        //to prevent out of range
+        if(i>=0 && i<=7 && j>=0 && j<=7){
             int search_action = 0;
-            if(piece[i][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NORTH", execute))
-                    search_action ++;
+            if(j>1){    //those piece and searchEnd to a specified direction
+                if(piece[i][j-1]==-cur){
+                    if(searchEnd(cur, i, j, "TO_NORTH", execute))
+                        search_action ++;
+                }
             }
-            if(piece[i+1][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NE", execute))
-                    search_action ++;
+            if(i<6 && j>1){
+                if(piece[i+1][j-1]==-cur){
+                    if(searchEnd(cur, i, j, "TO_NE", execute))
+                        search_action ++;
+                }
             }
-            if(piece[i+1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_EAST", execute))
-                    search_action ++;
+            if(i<6){
+                if(piece[i+1][j]==-cur){
+                    if(searchEnd(cur, i, j, "TO_EAST", execute))
+                        search_action ++;
+                }
             }
-            if(piece[i+1][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SE", execute))
-                    search_action ++;
+            if(i<6 && j<6){
+                if(piece[i+1][j+1]==-cur){
+                    if(searchEnd(cur, i, j, "TO_SE", execute))
+                        search_action ++;
+                }
             }
-            if(piece[i][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SOUTH", execute))
-                    search_action ++;
+            if(j<6){
+                if(piece[i][j+1]==-cur){
+                    if(searchEnd(cur, i, j, "TO_SOUTH", execute))
+                        search_action ++;
+                }
             }
-            if(piece[i-1][j+1]==-cur){
-                if(searchEnd(cur, i, j, "TO_SW", execute))
-                    search_action ++;
+            if(i>1 && j<6){
+                if(piece[i-1][j+1]==-cur){
+                    if(searchEnd(cur, i, j, "TO_SW", execute))
+                        search_action ++;
+                }
             }
-            if(piece[i-1][j]==-cur){
-                if(searchEnd(cur, i, j, "TO_WEST", execute))
-                    search_action ++;
+            if(i>1){
+                if(piece[i-1][j]==-cur){
+                    if(searchEnd(cur, i, j, "TO_WEST", execute))
+                        search_action ++;
+                }
             }
-            if(piece[i-1][j-1]==-cur){
-                if(searchEnd(cur, i, j, "TO_NW", execute))
-                    search_action ++;
+            if(i>1 && j>1){
+                if(piece[i-1][j-1]==-cur){
+                    if(searchEnd(cur, i, j, "TO_NW", execute))
+                        search_action ++;
+                }
             }
             result = search_action > 0;
         }
