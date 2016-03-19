@@ -111,7 +111,7 @@ class Algorithm {
         for(int xa=0; xa<8; xa++){
             for(int ya=0; ya<8; ya++){
                 if(piece[xa][ya]==0){
-                    if (checkLocation(cur, xa, ya, false)){
+                    if(checkLocation(cur, xa, ya, false)){
                         piece[xa][ya] = 2;
                         curAva++;
                     }
@@ -123,7 +123,7 @@ class Algorithm {
     }
 
     private boolean checkLocation(int cur, int i, int j, boolean execute) {
-        return !(piece[i][j] == BLACK || piece[i][j] == WHITE) && availablePlace(cur, i, j, execute);
+        return (piece[i][j] == 0 || piece[i][j] == 2) && availablePlace(cur, i, j, execute);
     }
 
     /**
@@ -215,21 +215,19 @@ class Algorithm {
                 boolean north_friend = false;	//if found friend
                 //begin search from the place beside the current place
                 for(end_to_north=j-1; end_to_north>=0; end_to_north--){
-                    //if found friend, break out
-                    if(piece[i][end_to_north]==cur){
-                        north_friend = true;
-                        break;
-                    }
                     //if not found, break out
-                    if(piece[i][end_to_north]==0){
-                        end_to_north = 0;
+                    if(piece[i][end_to_north]==0)
+                        break;
+                    //if found friend, break out
+                    else if(piece[i][end_to_north]==cur){
+                        north_friend = true;
                         break;
                     }
                 }
                 //if found friend
                 if(north_friend){
                     if(execute){	//if need to be executed, then it will reverse all pieces between the current place and friend place
-                        for(int y=j-1; y>=end_to_north; y--){
+                        for(int y=j-1; y>end_to_north; y--){
                             if(piece[i][y]==-cur){
                                 piece[i][y]=cur;
                             }
@@ -243,18 +241,16 @@ class Algorithm {
                 int end_to_east;
                 boolean east_friend = false;
                 for(end_to_east=i+1; end_to_east<=7; end_to_east++){
-                    if(piece[end_to_east][j]==cur){
-                        east_friend = true;
+                    if(piece[end_to_east][j]==0)
                         break;
-                    }
-                    if(piece[end_to_east][j]==0){
-                        end_to_east = 0;
+                    else if(piece[end_to_east][j]==cur){
+                        east_friend = true;
                         break;
                     }
                 }
                 if(east_friend){
                     if(execute){
-                        for(int x=i+1; x<=end_to_east; x++){
+                        for(int x=i+1; x<end_to_east; x++){
                             if(piece[x][j]==-cur){
                                 piece[x][j]=cur;
                             }
@@ -268,18 +264,16 @@ class Algorithm {
                 int end_to_south;
                 boolean south_friend = false;
                 for(end_to_south=j+1; end_to_south<=7; end_to_south++){
-                    if(piece[i][end_to_south]==cur){
-                        south_friend = true;
+                    if(piece[i][end_to_south]==0)
                         break;
-                    }
-                    if(piece[i][end_to_south]==0){
-                        end_to_south = 0;
+                    else if(piece[i][end_to_south]==cur){
+                        south_friend = true;
                         break;
                     }
                 }
                 if(south_friend){
                     if(execute){
-                        for(int y=j+1; y<=end_to_south; y++){
+                        for(int y=j+1; y<end_to_south; y++){
                             if(piece[i][y]==-cur){
                                 piece[i][y]=cur;
                             }
@@ -293,18 +287,16 @@ class Algorithm {
                 int end_to_west;
                 boolean west_friend = false;
                 for(end_to_west=i-1; end_to_west>=0; end_to_west--){
-                    if(piece[end_to_west][j]==cur){
-                        west_friend = true;
+                    if(piece[end_to_west][j]==0)
                         break;
-                    }
-                    if(piece[end_to_west][j]==0){
-                        end_to_west = 0;
+                    else if(piece[end_to_west][j]==cur){
+                        west_friend = true;
                         break;
                     }
                 }
                 if(west_friend){
                     if(execute){
-                        for(int x=i-1; x>=end_to_west; x--){
+                        for(int x=i-1; x>end_to_west; x--){
                             if(piece[x][j]==-cur){
                                 piece[x][j]=cur;
                             }
@@ -319,18 +311,16 @@ class Algorithm {
                 int rang_to_ne = 0;	//this range keeps x and y increase or decrease same rate
                 boolean ne_friend = false;
                 for(int x=i+1, y=j-1; x<=7 && y>=0; x++, y--, end_to_ne++){
-                    if(piece[x][y]==cur){
-                        ne_friend = true;
+                    if(piece[x][y]==0)
                         break;
-                    }
-                    if(piece[x][y]==0){
-                        end_to_ne = 0;
+                    else if(piece[x][y]==cur){
+                        ne_friend = true;
                         break;
                     }
                 }
                 if(ne_friend){
                     if(execute){
-                        for(int x=i+1, y=j-1; rang_to_ne<=end_to_ne; x++, y--, rang_to_ne++){
+                        for(int x=i+1, y=j-1; rang_to_ne<end_to_ne; x++, y--, rang_to_ne++){
                             if(piece[x][y]==-cur){
                                 piece[x][y]=cur;
                             }
@@ -345,18 +335,16 @@ class Algorithm {
                 int rang_to_se = 0;
                 boolean se_friend = false;
                 for(int x=i+1, y=j+1; x<=7 && y<=7; x++, y++, end_to_se++){
-                    if(piece[x][y]==cur){
-                        se_friend = true;
+                    if(piece[x][y]==0)
                         break;
-                    }
-                    if(piece[x][y]==0){
-                        end_to_se = 0;
+                    else if(piece[x][y]==cur){
+                        se_friend = true;
                         break;
                     }
                 }
                 if(se_friend){
                     if(execute){
-                        for(int x=i+1, y=j+1; rang_to_se<=end_to_se; x++, y++, rang_to_se++){
+                        for(int x=i+1, y=j+1; rang_to_se<end_to_se; x++, y++, rang_to_se++){
                             if(piece[x][y]==-cur){
                                 piece[x][y]=cur;
                             }
@@ -371,18 +359,16 @@ class Algorithm {
                 int rang_to_sw = 0;
                 boolean sw_friend = false;
                 for(int x=i-1, y=j+1; x>=0 && y<=7; x--, y++, end_to_sw++){
-                    if(piece[x][y]==cur){
-                        sw_friend = true;
+                    if(piece[x][y]==0)
                         break;
-                    }
-                    if(piece[x][y]==0){
-                        end_to_sw = 0;
+                    else if(piece[x][y]==cur){
+                        sw_friend = true;
                         break;
                     }
                 }
                 if(sw_friend){
                     if(execute){
-                        for(int x=i-1, y=j+1; rang_to_sw<=end_to_sw; x--, y++, rang_to_sw++){
+                        for(int x=i-1, y=j+1; rang_to_sw<end_to_sw; x--, y++, rang_to_sw++){
                             if(piece[x][y]==-cur){
                                 piece[x][y]=cur;
                             }
@@ -397,18 +383,16 @@ class Algorithm {
                 int rang_to_nw = 0;
                 boolean nw_friend = false;
                 for(int x=i-1, y=j-1; x>=0 && y>=0; x--, y--, end_to_nw++){
-                    if(piece[x][y]==cur){
-                        nw_friend = true;
+                    if(piece[x][y]==0)
                         break;
-                    }
-                    if(piece[x][y]==0){
-                        end_to_nw = 0;
+                    else if(piece[x][y]==cur){
+                        nw_friend = true;
                         break;
                     }
                 }
                 if(nw_friend){
                     if(execute){
-                        for(int x=i-1, y=j-1; rang_to_nw<=end_to_nw; x--, y--, rang_to_nw++){
+                        for(int x=i-1, y=j-1; rang_to_nw<end_to_nw; x--, y--, rang_to_nw++){
                             if(piece[x][y]==-cur){
                                 piece[x][y]=cur;
                             }

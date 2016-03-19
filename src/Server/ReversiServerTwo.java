@@ -1,5 +1,9 @@
 package Server;
 
+/**
+ * This server take only two players at same time
+ */
+
 import org.json.JSONObject;
 
 import javax.swing.*;

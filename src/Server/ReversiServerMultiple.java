@@ -1,5 +1,9 @@
 package Server;
 
+/**
+ * This server take more than two players at same time
+ */
+
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -308,8 +312,6 @@ public class ReversiServerMultiple extends JFrame{
                 sendMessage(p, "game", "off");
                 sendMessage(p, "message", ">>> Game Over!");
             }
-//            tables.remove(players);  //empty the waitingQueue
-//            algorithms.remove(players.getFirst().getAlgorithmID()); //restore the algorithm
             serverUpdate();
             printLog("One game ended");
         }
