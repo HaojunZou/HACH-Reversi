@@ -9,16 +9,17 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public class ReversiServer extends JFrame{
+public class ReversiServerMultiple extends JFrame{
     private static LinkedList<Player> onlineQueue = new LinkedList<Player>();	//list of all players are waiting
-    private static LinkedList<Player> gameQueue = new LinkedList<Player>();	//list of all players are engaging
-    private Algorithm algorithm = new Algorithm();
+    private static LinkedList<Player> waitingQueue = new LinkedList<Player>();	//list of all players are engaging
+    private static LinkedList<LinkedList<Player>> tables = new LinkedList<LinkedList<Player>>();
+    private static LinkedList<Algorithm> algorithms = new LinkedList<Algorithm>();
 
-    private JLabel waitNumber = new JLabel(Integer.toString(onlineQueue.size())); //number of online user
-    private JLabel inGameNumber = new JLabel(Integer.toString(gameQueue.size()));   //number of in game user
+    private JLabel onlineNumber = new JLabel(Integer.toString(onlineQueue.size())); //number of online user
+    private JLabel tablesNumber = new JLabel(Integer.toString(tables.size()));
     private JTextArea logContent = new JTextArea(); //server log
 
-    private ReversiServer(int port){
+    private ReversiServerMultiple(int port){
         try(ServerSocket serverSocket = new ServerSocket(port)){
             this.setTitle("HACH-Reversi Server");
             this.setSize(500, 500);
@@ -31,7 +32,7 @@ public class ReversiServer extends JFrame{
             JPanel onlinePanel = new JPanel();
             JPanel inGamePanel = new JPanel();
             JLabel lbOnline = new JLabel("Online users: ");
-            JLabel lbInGame = new JLabel("In game users: ");
+            JLabel lbInGame = new JLabel("Tables: ");
             JScrollPane logArea = new JScrollPane(logContent);
 
             mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -50,9 +51,9 @@ public class ReversiServer extends JFrame{
             serverInfo.add(onlinePanel);
             serverInfo.add(inGamePanel);
             onlinePanel.add(lbOnline);
-            onlinePanel.add(waitNumber);
+            onlinePanel.add(onlineNumber);
             inGamePanel.add(lbInGame);
-            inGamePanel.add(inGameNumber);
+            inGamePanel.add(tablesNumber);
             logContent.setEditable(false);
             printLog("Server on...");
 
@@ -88,7 +89,7 @@ public class ReversiServer extends JFrame{
         }
         else {
             final String PORT = args[0];
-            new ReversiServer(Integer.parseInt(PORT));
+            new ReversiServerMultiple(Integer.parseInt(PORT));
         }
     }
 
@@ -119,11 +120,11 @@ public class ReversiServer extends JFrame{
                     if(command.contains("\"quit\":")){  //if get quit command from client, tell the other player
                         if(jsonGet.get("quit").equals("yes")){
                             if(player.isInGame()) {
-                                gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
+                                tables.get(player.getTableID()).stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
                                     sendMessage(p, "message", ">>> Your rival left the game!");
                                 });
-                                gameUpdate(gameQueue);
-                                gameEnd(gameQueue); //game should not keep running after that
+                                gameUpdate(tables.get(player.getTableID()));
+                                gameEnd(tables.get(player.getTableID())); //game should not keep running after that
                                 serverUpdate();
                                 break;
                             }
@@ -202,67 +203,68 @@ public class ReversiServer extends JFrame{
             try {
                 if (cmd.contains("\"command\":")) {
                     if(jsonGet.get("command").equals("ready")){
-                        if(gameQueue.size() >= 2){   //if game queue has 2 player, tell the new player to wait
+                        if(waitingQueue.size() >= 2){   //if waitingQueue has 2 player, tell the new player to wait
                             sendMessage(player, "game", "wait");
                             sendMessage(player, "warning", "There's a game running, please try ready later...");
                         }
                         else {
-                            gameQueue.add(player);  //add player to game queue
-                            if(gameQueue.size() < 2)    //if there's only one player, send allow ready
+                            waitingQueue.add(player);  //add player to waitingQueue
+                            if(waitingQueue.size() < 2)    //if there's only one player, send allow ready
                                 sendMessage(player, "game", "ready");
-                            else if (gameQueue.size() == 2)  //if game queue has two players, start a game
-                                gameStart(gameQueue);
+                            else if (waitingQueue.size() == 2)  //if waitingQueue has two players, start a game
+                                gameStart(waitingQueue);
                         }
                         serverUpdate();
                     } else if(jsonGet.get("command").equals("notReady")){   //if player don't want to be ready
-                        gameQueue.remove(player);
+                        waitingQueue.remove(player);
                         serverUpdate();
                     } else if(jsonGet.get("command").toString().equals("surrender")){   //if player want surrender
                         //no matter who has more pieces in the map, surrender will affect the opponent wins
-                        gameQueue.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
+                        tables.get(player.getTableID()).stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
                             sendMessage(p, "message", ">>> Your rival surrendered!");
                         });
-                        sendAllMessage(gameQueue, "message", (player.getColor()==1) ? ">>> White wins!" : ">>> Black wins!");
-                        gameUpdate(gameQueue);
-                        gameEnd(gameQueue);
+                        sendAllMessage(tables.get(player.getTableID()), "message", (player.getColor()==1) ? ">>> White wins!" : ">>> Black wins!");
+                        gameUpdate(tables.get(player.getTableID()));
+                        gameEnd(tables.get(player.getTableID()));
                     }
                 } else if (cmd.contains("\"move\":")) { //player put a piece in the map
-                    if (player.getColor() == algorithm.getCurrentPlayer()) {    //if it's the current player move
+                    if (player.getColor() == algorithms.get(player.getAlgorithmID()).getCurrentPlayer()) {    //if it's the current player move
                         int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
                         int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
-                        int nextPlayer = algorithm.move(x, y);
+                        int nextPlayer = algorithms.get(player.getAlgorithmID()).move(x, y);
                         if (nextPlayer == -player.getColor() && nextPlayer != 0) {   //switch player
                             //result shows player color before switch
-                            sendAllMessage(gameQueue, "message",
-                                    (algorithm.getCurrentPlayer() == -1) ?
+                            System.out.println("my table id: " + tables.get(player.getTableID()));
+                            sendAllMessage(tables.get(player.getTableID()), "message",
+                                    (algorithms.get(player.getAlgorithmID()).getCurrentPlayer() == -1) ?
                                             ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
                                             : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
-                            gameUpdate(gameQueue);
+                            gameUpdate(tables.get(player.getTableID()));
                         } else if (nextPlayer == player.getColor() && nextPlayer != 0) {  //if not switch player
                             //result shows same color before move
-                            sendAllMessage(gameQueue, "message",
-                                    (algorithm.getCurrentPlayer() == 1) ?
+                            sendAllMessage(tables.get(player.getTableID()), "message",
+                                    (algorithms.get(player.getAlgorithmID()).getCurrentPlayer() == 1) ?
                                             ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
                                             : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
                             sendMessage(player, "message", ">>> Your rival pass, go on!");
                             Player passPlayer = null;
-                            for (Player p : gameQueue) {
+                            for (Player p : tables.get(player.getTableID())) {
                                 if (p != player)
                                     passPlayer = p;
                             }
                             assert passPlayer != null;
-                            gameUpdate(gameQueue);
+                            gameUpdate(tables.get(player.getTableID()));
                             sendMessage(passPlayer, "message", ">>> Pass!");
                         } else if(nextPlayer == 64 || nextPlayer == -64){   //if no player can move, game over
-                            sendAllMessage(gameQueue, "message",
-                                    ((algorithm.getCurrentPlayer()/64) == 1) ?
+                            sendAllMessage(tables.get(player.getTableID()), "message",
+                                    ((algorithms.get(player.getAlgorithmID()).getCurrentPlayer()/64) == 1) ?
                                             ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
                                             : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
-                            gameUpdate(gameQueue);
+                            gameUpdate(tables.get(player.getTableID()));
                         }
                     }
                 } else if(cmd.contains("\"chat\":")){   //get chat message
-                    sendAllMessage(gameQueue, "message", ((player.getColor() == 1) ? "Black say: " : "White say: ") + jsonGet.get("chat"));
+                    sendAllMessage(tables.get(player.getTableID()), "message", ((player.getColor() == 1) ? "Black say: " : "White say: ") + jsonGet.get("chat"));
                 }
             }catch (Exception e) {
             }
@@ -274,15 +276,23 @@ public class ReversiServer extends JFrame{
          */
         private void gameStart(LinkedList<Player> players){
             gameOver = false;
+            Algorithm algorithm = new Algorithm();
             printLog("One game started");
             players.getFirst().setColor(1);   //black player
             players.getFirst().setInGame(true);   //set player status
+            players.getFirst().setTableID(tables.size());
+            players.getFirst().setAlgorithmID(tables.size());
             players.getLast().setColor(-1);   //white player
             players.getLast().setInGame(true);
+            players.getLast().setTableID(tables.size());
+            players.getLast().setAlgorithmID(tables.size());
             sendAllMessage(players, "message", "---------------------------------------------");
             sendMessage(players.getFirst(), "message", ">>> Rival found!\n>>> Game started!\n>>> You play as black");
             sendMessage(players.getLast(), "message", ">>> Rival found!\n>>> Game started!\n>>> You play as white");
             sendAllMessage(players, "game", "on");   //tell client change status
+            tables.add(players);
+            algorithms.add(algorithm);
+            waitingQueue = new LinkedList<Player>();
             gameUpdate(players);
             serverUpdate();
             new Thread(new Game()).start(); //new thread for a game
@@ -298,10 +308,10 @@ public class ReversiServer extends JFrame{
                 sendMessage(p, "game", "off");
                 sendMessage(p, "message", ">>> Game Over!");
             }
-            gameQueue.clear();  //empty the game queue
+//            tables.remove(players);  //empty the waitingQueue
+//            algorithms.remove(players.getFirst().getAlgorithmID()); //restore the algorithm
             serverUpdate();
             printLog("One game ended");
-            algorithm = new Algorithm();    //restore the algorithm
         }
 
         /**
@@ -309,17 +319,17 @@ public class ReversiServer extends JFrame{
          * @param players: two in game players
          */
         private void gameUpdate(LinkedList<Player> players){
-            sendAllMessage(players, "current", algorithm.getCurrentPlayer());    //send current player move
+            sendAllMessage(players, "current", algorithms.get(players.getFirst().getAlgorithmID()).getCurrentPlayer());    //send current player move
             sendAllMessage(players, "score", getScore());    //send current score
             Player curP = null; //the current player
             Player rivP = null; //the rival player
             for(Player p : players){    //send map
-                if(p.getColor() == algorithm.getCurrentPlayer())
+                if(p.getColor() == algorithms.get(players.getFirst().getAlgorithmID()).getCurrentPlayer())
                     curP = p;
-                else if(p.getColor() == -algorithm.getCurrentPlayer())
+                else if(p.getColor() == -algorithms.get(players.getFirst().getAlgorithmID()).getCurrentPlayer())
                     rivP = p;
                 else {
-                    sendAllMessage(players, "show", algorithm.getCurrentMapWithoutAva());   //show map just before game over
+                    sendAllMessage(players, "show", algorithms.get(players.getFirst().getAlgorithmID()).getCurrentMapWithoutAva());   //show map just before game over
                     if ((getScore()[0]) > (getScore()[1]))
                         sendAllMessage(players, "message", ">>> Black wins!");
                     else if ((getScore()[0]) < (getScore()[1]))
@@ -329,14 +339,14 @@ public class ReversiServer extends JFrame{
                     gameEnd(players);
                 }
             }
-            sendMessage(curP, "show", algorithm.getCurrentMap());   //show map with hint position
-            sendMessage(rivP, "show", algorithm.getCurrentMapWithoutAva()); //show map without hint position
+            sendMessage(curP, "show", algorithms.get(players.getFirst().getAlgorithmID()).getCurrentMap());   //show map with hint position
+            sendMessage(rivP, "show", algorithms.get(players.getFirst().getAlgorithmID()).getCurrentMapWithoutAva()); //show map without hint position
         }
 
         private int[] getScore(){
             int[] score = new int[2];
-            score[0] = algorithm.getCountBlack();
-            score[1] = algorithm.getCountWhite();
+            score[0] = algorithms.get(player.getAlgorithmID()).getCountBlack();
+            score[1] = algorithms.get(player.getAlgorithmID()).getCountWhite();
             return score;
         }
 
@@ -371,22 +381,21 @@ public class ReversiServer extends JFrame{
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
-                    for(Player p : gameQueue){
+                    for(Player p : tables.get(player.getTableID())){
                         p.setInGame(false); //restore players status to not in game
-                        gameUpdate(gameQueue);
+                        gameUpdate(tables.get(player.getTableID()));
                     }
-                    sendAllMessage(gameQueue, "game", "off");
-                    gameEnd(gameQueue);
+                    sendAllMessage(tables.get(player.getTableID()), "game", "off");
+                    gameEnd(tables.get(player.getTableID()));
                     serverUpdate();
-                    gameQueue.clear();  //remove all players from game queue
                 }
             }
         }   //end of Game thread
     }   //end of Client thread
 
     private void serverUpdate(){
-        waitNumber.setText(Integer.toString(onlineQueue.size()));
-        inGameNumber.setText(Integer.toString(gameQueue.size()));
+        onlineNumber.setText(Integer.toString(onlineQueue.size()));
+        tablesNumber.setText(Integer.toString(tables.size()));
     }
 
     private void printLog(String log){
