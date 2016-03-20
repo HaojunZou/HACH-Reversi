@@ -216,7 +216,7 @@ class Algorithm {
                 //begin search from the place beside the current place
                 for(end_to_north=j-1; end_to_north>=0; end_to_north--){
                     //if not found, break out
-                    if(piece[i][end_to_north]==0)
+                    if(piece[i][end_to_north]==0 || piece[i][end_to_north]==2)
                         break;
                     //if found friend, break out
                     else if(piece[i][end_to_north]==cur){
@@ -242,7 +242,7 @@ class Algorithm {
                 int end_to_east;
                 boolean east_friend = false;
                 for(end_to_east=i+1; end_to_east<=7; end_to_east++){
-                    if(piece[end_to_east][j]==0)
+                    if(piece[end_to_east][j]==0 || piece[end_to_east][j]==2)
                         break;
                     else if(piece[end_to_east][j]==cur){
                         east_friend = true;
@@ -266,7 +266,7 @@ class Algorithm {
                 int end_to_south;
                 boolean south_friend = false;
                 for(end_to_south=j+1; end_to_south<=7; end_to_south++){
-                    if(piece[i][end_to_south]==0)
+                    if(piece[i][end_to_south]==0 || piece[i][end_to_south]==2)
                         break;
                     else if(piece[i][end_to_south]==cur){
                         south_friend = true;
@@ -290,7 +290,7 @@ class Algorithm {
                 int end_to_west;
                 boolean west_friend = false;
                 for(end_to_west=i-1; end_to_west>=0; end_to_west--){
-                    if(piece[end_to_west][j]==0)
+                    if(piece[end_to_west][j]==0 || piece[end_to_west][j]==2)
                         break;
                     else if(piece[end_to_west][j]==cur){
                         west_friend = true;
@@ -315,7 +315,7 @@ class Algorithm {
                 int rang_to_ne = 0;	//this range keeps x and y increase or decrease same rate
                 boolean ne_friend = false;
                 for(int x=i+1, y=j-1; x<=7 && y>=0; x++, y--, end_to_ne++){
-                    if(piece[x][y]==0)
+                    if(piece[x][y]==0 || piece[x][y]==2)
                         break;
                     else if(piece[x][y]==cur){
                         ne_friend = true;
@@ -340,7 +340,7 @@ class Algorithm {
                 int rang_to_se = 0;
                 boolean se_friend = false;
                 for(int x=i+1, y=j+1; x<=7 && y<=7; x++, y++, end_to_se++){
-                    if(piece[x][y]==0)
+                    if(piece[x][y]==0 || piece[x][y]==2)
                         break;
                     else if(piece[x][y]==cur){
                         se_friend = true;
@@ -365,7 +365,7 @@ class Algorithm {
                 int rang_to_sw = 0;
                 boolean sw_friend = false;
                 for(int x=i-1, y=j+1; x>=0 && y<=7; x--, y++, end_to_sw++){
-                    if(piece[x][y]==0)
+                    if(piece[x][y]==0 || piece[x][y]==2)
                         break;
                     else if(piece[x][y]==cur){
                         sw_friend = true;
@@ -390,7 +390,7 @@ class Algorithm {
                 int rang_to_nw = 0;
                 boolean nw_friend = false;
                 for(int x=i-1, y=j-1; x>=0 && y>=0; x--, y--, end_to_nw++){
-                    if(piece[x][y]==0)
+                    if(piece[x][y]==0 || piece[x][y]==2)
                         break;
                     else if(piece[x][y]==cur){
                         nw_friend = true;
