@@ -232,8 +232,9 @@ class Algorithm {
                                 piece[i][y]=cur;
                             }
                         }
-                    }
-                    return true;
+                        return true;
+                    }else
+                        return true;
                 }
                 else
                     return false;
@@ -255,8 +256,9 @@ class Algorithm {
                                 piece[x][j]=cur;
                             }
                         }
-                    }
-                    return true;
+                        return true;
+                    }else
+                        return true;
                 }
                 else
                     return false;
@@ -278,8 +280,9 @@ class Algorithm {
                                 piece[i][y]=cur;
                             }
                         }
-                    }
-                    return true;
+                        return true;
+                    }else
+                        return true;
                 }
                 else
                     return false;
@@ -301,8 +304,9 @@ class Algorithm {
                                 piece[x][j]=cur;
                             }
                         }
-                    }
-                    return true;
+                        return true;
+                    }else
+                        return true;
                 }
                 else
                     return false;
@@ -325,8 +329,9 @@ class Algorithm {
                                 piece[x][y]=cur;
                             }
                         }
-                    }
-                    return true;
+                        return true;
+                    }else
+                        return true;
                 }
                 else
                     return false;
@@ -349,8 +354,9 @@ class Algorithm {
                                 piece[x][y]=cur;
                             }
                         }
-                    }
-                    return true;
+                        return true;
+                    }else
+                        return true;
                 }
                 else
                     return false;
@@ -373,8 +379,9 @@ class Algorithm {
                                 piece[x][y]=cur;
                             }
                         }
-                    }
-                    return true;
+                        return true;
+                    }else
+                        return true;
                 }
                 else
                     return false;
@@ -397,8 +404,9 @@ class Algorithm {
                                 piece[x][y]=cur;
                             }
                         }
-                    }
-                    return true;
+                        return true;
+                    }else
+                        return true;
                 }
                 else
                     return false;

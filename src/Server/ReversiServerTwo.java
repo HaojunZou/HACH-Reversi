@@ -203,72 +203,69 @@ public class ReversiServerTwo extends JFrame{
          */
         private void Command(String cmd) {
             JSONObject jsonGet = new JSONObject(cmd);
-            try {
-                if (cmd.contains("\"command\":")) {
-                    if(jsonGet.get("command").equals("ready")){
-                        if(table.size() >= 2){   //if table has 2 player, tell the new player to wait
-                            sendMessage(player, "game", "wait");
-                            sendMessage(player, "warning", "There's a game running, please try ready later...");
-                        }
-                        else {
-                            table.add(player);  //add player to table
-                            if(table.size() < 2)    //if there's only one player, send allow ready
-                                sendMessage(player, "game", "ready");
-                            else if (table.size() == 2)  //if table has two players, start a game
-                                gameStart(table);
-                        }
-                        serverUpdate();
-                    } else if(jsonGet.get("command").equals("notReady")){   //if player don't want to be ready
-                        table.remove(player);
-                        serverUpdate();
-                    } else if(jsonGet.get("command").toString().equals("surrender")){   //if player want surrender
-                        //no matter who has more pieces in the map, surrender will affect the opponent wins
-                        table.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
-                            sendMessage(p, "message", ">>> Your rival surrendered!");
-                        });
-                        sendAllMessage(table, "message", (player.getColor()==1) ? ">>> White wins!" : ">>> Black wins!");
-                        gameUpdate(table);
-                        gameEnd(table);
+            if (cmd.contains("\"command\":")) {
+                if(jsonGet.get("command").equals("ready")){
+                    if(table.size() >= 2){   //if table has 2 player, tell the new player to wait
+                        sendMessage(player, "game", "wait");
+                        sendMessage(player, "warning", "There's a game running, please try ready later...");
                     }
-                } else if (cmd.contains("\"move\":")) { //player put a piece in the map
-                    if (player.getColor() == algorithm.getCurrentPlayer()) {    //if it's the current player move
-                        int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
-                        int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
-                        int nextPlayer = algorithm.move(x, y);
-                        if (nextPlayer == -player.getColor() && nextPlayer != 0) {   //switch player
-                            //result shows player color before switch
-                            sendAllMessage(table, "message",
-                                    (algorithm.getCurrentPlayer() == -1) ?
-                                            ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
-                                            : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
-                            gameUpdate(table);
-                        } else if (nextPlayer == player.getColor() && nextPlayer != 0) {  //if not switch player
-                            //result shows same color before move
-                            sendAllMessage(table, "message",
-                                    (algorithm.getCurrentPlayer() == 1) ?
-                                            ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
-                                            : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
-                            sendMessage(player, "message", ">>> Your rival pass, go on!");
-                            Player passPlayer = null;
-                            for (Player p : table) {
-                                if (p != player)
-                                    passPlayer = p;
-                            }
-                            assert passPlayer != null;
-                            gameUpdate(table);
-                            sendMessage(passPlayer, "message", ">>> Pass!");
-                        } else if(nextPlayer == 64 || nextPlayer == -64){   //if no player can move, game over
-                            sendAllMessage(table, "message",
-                                    ((algorithm.getCurrentPlayer()/64) == 1) ?
-                                            ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
-                                            : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
-                            gameUpdate(table);
-                        }
+                    else {
+                        table.add(player);  //add player to table
+                        if(table.size() < 2)    //if there's only one player, send allow ready
+                            sendMessage(player, "game", "ready");
+                        else if (table.size() == 2)  //if table has two players, start a game
+                            gameStart(table);
                     }
-                } else if(cmd.contains("\"chat\":")){   //get chat message
-                    sendAllMessage(table, "message", ((player.getColor() == 1) ? "Black say: " : "White say: ") + jsonGet.get("chat"));
+                    serverUpdate();
+                } else if(jsonGet.get("command").equals("notReady")){   //if player don't want to be ready
+                    table.remove(player);
+                    serverUpdate();
+                } else if(jsonGet.get("command").toString().equals("surrender")){   //if player want surrender
+                    //no matter who has more pieces in the map, surrender will affect the opponent wins
+                    table.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
+                        sendMessage(p, "message", ">>> Your rival surrendered!");
+                    });
+                    sendAllMessage(table, "message", (player.getColor()==1) ? ">>> White wins!" : ">>> Black wins!");
+                    gameUpdate(table);
+                    gameEnd(table);
                 }
-            }catch (Exception e) {
+            } else if (cmd.contains("\"move\":")) { //player put a piece in the map
+                if (player.getColor() == algorithm.getCurrentPlayer()) {    //if it's the current player move
+                    int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
+                    int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
+                    int nextPlayer = algorithm.move(x, y);
+                    if (nextPlayer == -player.getColor() && nextPlayer != 0) {   //switch player
+                        //result shows player color before switch
+                        sendAllMessage(table, "message",
+                                (algorithm.getCurrentPlayer() == -1) ?
+                                        ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
+                                        : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
+                        gameUpdate(table);
+                    } else if (nextPlayer == player.getColor() && nextPlayer != 0) {  //if not switch player
+                        //result shows same color before move
+                        sendAllMessage(table, "message",
+                                (algorithm.getCurrentPlayer() == 1) ?
+                                        ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
+                                        : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
+                        sendMessage(player, "message", ">>> Your rival pass, go on!");
+                        Player passPlayer = null;
+                        for (Player p : table) {
+                            if (p != player)
+                                passPlayer = p;
+                        }
+                        assert passPlayer != null;
+                        gameUpdate(table);
+                        sendMessage(passPlayer, "message", ">>> Pass!");
+                    } else if(nextPlayer == 64 || nextPlayer == -64){   //if no player can move, game over
+                        sendAllMessage(table, "message",
+                                ((algorithm.getCurrentPlayer()/64) == 1) ?
+                                        ("Black " + "[" + getX(x) + "," + (y + 1) + "]")
+                                        : ("White " + "[" + getX(x) + "," + (y + 1) + "]"));
+                        gameUpdate(table);
+                    }
+                }
+            } else if(cmd.contains("\"chat\":")){   //get chat message
+                sendAllMessage(table, "message", ((player.getColor() == 1) ? "Black say: " : "White say: ") + jsonGet.get("chat"));
             }
         }
 
