@@ -381,10 +381,7 @@ public class ReversiServerMultiple extends JFrame{
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
-                    for(Player p : tables.get(player.getTableID())){
-                        p.setInGame(false); //restore players status to not in game
-                        gameUpdate(tables.get(player.getTableID()));
-                    }
+                    gameUpdate(tables.get(player.getTableID()));
                     sendAllMessage(tables.get(player.getTableID()), "game", "off");
                     gameEnd(tables.get(player.getTableID()));
                     serverUpdate();
