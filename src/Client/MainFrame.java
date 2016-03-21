@@ -326,16 +326,16 @@ public class MainFrame extends JFrame implements MessageBoy{
     private void Command(String cmd) {
         JSONObject jsonGet = new JSONObject(cmd);
         try {
-            if (cmd.contains("\"show\":")) {    //refresh game map
+            if (cmd.startsWith("{\"show\":")) {    //refresh game map
                 String mapString = jsonGet.get("show").toString();
                 refreshMap(mapString);
-            } else if (cmd.contains("\"message\":")) {  //print message in message area
+            } else if (cmd.startsWith("{\"message\":")) {  //print message in message area
                 dialogArea.append(jsonGet.get("message").toString() + "\n");
                 dialogArea.setCaretPosition(dialogArea.getText().length()); //keep the last line on the bottom
-            } else if (cmd.contains("\"score\":")) {    //show score in the corner
+            } else if (cmd.startsWith("{\"score\":")) {    //show score in the corner
                 countBlack.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[0]);
                 countWhite.setText(jsonGet.get("score").toString().replace("[", "").replace("]", "").split(",")[1]);
-            } else if(cmd.contains("\"game\":")){   //game status change command from server
+            } else if(cmd.startsWith("{\"game\":")){   //game status change command from server
                 if(jsonGet.get("game").toString().equals("on")) {   //player in game
                     btnReady.setVisible(false);
                     btnNotReady.setVisible(false);
@@ -365,12 +365,12 @@ public class MainFrame extends JFrame implements MessageBoy{
                     txtChat.setEnabled(false);
                     btnSend.setEnabled(false);
                 }
-            } else if(cmd.contains("\"current\":")){    //get the current player color from server
+            } else if(cmd.startsWith("{\"current\":")){    //get the current player color from server
                 if (jsonGet.get("current").toString().equals("1"))
                     currentPlayer = 1;
                 else if (jsonGet.get("current").toString().equals("-1"))
                     currentPlayer = -1;
-            } else if(cmd.contains("\"warning\":")){    //show warning message
+            } else if(cmd.startsWith("{\"warning\":")){    //show warning message
                 JOptionPane.showMessageDialog(null, jsonGet.get("warning").toString());
             }
         }catch (Exception e){

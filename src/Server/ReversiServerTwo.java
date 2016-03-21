@@ -120,7 +120,7 @@ public class ReversiServerTwo extends JFrame{
                 String command;
                 while ((command = bufferedReader.readLine()) != null) {
                     JSONObject jsonGet = new JSONObject(command);
-                    if(command.contains("\"quit\":")){  //if get quit command from client, tell the other player
+                    if(command.startsWith("{\"quit\":")){  //if get quit command from client, tell the other player
                         if(jsonGet.get("quit").equals("yes")){
                             if(player.isInGame()) {
                                 table.stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
@@ -203,7 +203,7 @@ public class ReversiServerTwo extends JFrame{
          */
         private void Command(String cmd) {
             JSONObject jsonGet = new JSONObject(cmd);
-            if (cmd.contains("\"command\":")) {
+            if (cmd.startsWith("{\"command\":")) {
                 if(jsonGet.get("command").equals("ready")){
                     if(table.size() >= 2){   //if table has 2 player, tell the new player to wait
                         sendMessage(player, "game", "wait");
@@ -229,7 +229,7 @@ public class ReversiServerTwo extends JFrame{
                     gameUpdate(table);
                     gameEnd(table);
                 }
-            } else if (cmd.contains("\"move\":")) { //player put a piece in the map
+            } else if (cmd.startsWith("{\"move\":")) { //player put a piece in the map
                 if (player.getColor() == algorithm.getCurrentPlayer()) {    //if it's the current player move
                     int x = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[0]);
                     int y = Integer.parseInt(jsonGet.get("move").toString().replace("[", "").replace("]", "").split(",")[1]);
@@ -264,7 +264,7 @@ public class ReversiServerTwo extends JFrame{
                         gameUpdate(table);
                     }
                 }
-            } else if(cmd.contains("\"chat\":")){   //get chat message
+            } else if(cmd.startsWith("{\"chat\":")){   //get chat message
                 sendAllMessage(table, "message", ((player.getColor() == 1) ? "Black say: " : "White say: ") + jsonGet.get("chat"));
             }
         }
