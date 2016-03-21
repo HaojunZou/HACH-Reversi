@@ -129,7 +129,6 @@ public class ReversiServerMultiple extends JFrame{
                                 });
                                 gameUpdate(tables.get(player.getTableID()));
                                 gameEnd(tables.get(player.getTableID())); //game should not keep running after that
-                                serverUpdate();
                                 break;
                             }
                         }
@@ -382,9 +381,7 @@ public class ReversiServerMultiple extends JFrame{
                     e.printStackTrace();
                 } finally {
                     gameUpdate(tables.get(player.getTableID()));
-                    sendAllMessage(tables.get(player.getTableID()), "game", "off");
                     gameEnd(tables.get(player.getTableID()));
-                    serverUpdate();
                 }
             }
         }   //end of Game thread
