@@ -58,6 +58,8 @@ public class MainFrame extends JFrame implements MessageBoy{
     private JTextField txtChat = new JTextField();
     private JButton btnSend = new JButton("Send");
 
+    private JMenuItem newMenuItem;
+
     //Constructor
     private MainFrame() {
         /****** Main Frame ******/
@@ -76,7 +78,7 @@ public class MainFrame extends JFrame implements MessageBoy{
         fileMenu.setMnemonic(KeyEvent.VK_F);
         menuBar.add(fileMenu);
         // File->New, N - Mnemonic
-        JMenuItem newMenuItem = new JMenuItem("How to play", KeyEvent.VK_N);
+        newMenuItem = new JMenuItem("How to play", KeyEvent.VK_N);
         fileMenu.add(newMenuItem);
         this.setJMenuBar(menuBar);
 
@@ -185,7 +187,17 @@ public class MainFrame extends JFrame implements MessageBoy{
     //main method access
     public static void main(String[] args) {
         MainFrame mf = new MainFrame();
+        mf.help();
         mf.login();
+    }
+
+    private void help(){
+        newMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new Help();
+            }
+        });
     }
 
     private void login(){
