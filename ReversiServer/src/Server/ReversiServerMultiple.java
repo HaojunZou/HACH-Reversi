@@ -88,13 +88,7 @@ public class ReversiServerMultiple extends JFrame{
 
     //main access
     public static void main(String [] args){
-        if(args.length != 1) {
-            System.out.println("Please control program arguments:\n[port]\n");
-        }
-        else {
-            final String PORT = args[0];
-            new ReversiServerMultiple(Integer.parseInt(PORT));
-        }
+        new ReversiServerMultiple(20000);
     }
 
     //client thread

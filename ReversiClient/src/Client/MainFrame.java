@@ -437,7 +437,7 @@ public class MainFrame extends JFrame implements MessageBoy{
                             g.fillOval(55 + 50 * i, 55 + 50 * j, 40, 40);
                         } else if (piece[i][j] == 2) { 	    //available place
                             g.setColor(AVAILABLE_PLACE_COLOR);
-                            g.fillOval(72 + 50 * i, 72 + 50 * j, 6, 6);
+                            g.drawOval(72 + 50 * i, 72 + 50 * j, 6, 6);
                         }
                     }
                 }
