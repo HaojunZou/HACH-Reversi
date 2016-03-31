@@ -221,11 +221,10 @@ public class ReversiServerMultiple{
                 if(algorithms.get(i) == null){
                     tableID = i;
                     break;
-                } else{
-                    tableID = algorithms.size();
-                    break;
                 }
             }
+            if(tableID == 0)
+                tableID = algorithms.size();
             Algorithm algorithm = new Algorithm();
             System.out.println("One game started");
             players.getFirst().setColor(1);   //black player
