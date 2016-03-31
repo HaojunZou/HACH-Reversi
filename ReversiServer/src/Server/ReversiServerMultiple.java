@@ -13,71 +13,22 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public class ReversiServerMultiple extends JFrame{
-    private static LinkedList<Player> onlineQueue = new LinkedList<Player>();	//list of all players are waiting
-    private static LinkedList<Player> waitingQueue = new LinkedList<Player>();	//list of all players are engaging
-    private static LinkedList<LinkedList<Player>> tables = new LinkedList<LinkedList<Player>>();
+public class ReversiServerMultiple{
+    private static LinkedList<Player> onlineQueue = new LinkedList<Player>();	//list of all players are online
+    private static LinkedList<Player> waitingQueue = new LinkedList<Player>();	//list of all players are waiting
+    private static LinkedList<LinkedList<Player>> tables = new LinkedList<LinkedList<Player>>();    //list of all active tables
     private static LinkedList<Algorithm> algorithms = new LinkedList<Algorithm>();
-
-    private JLabel onlineNumber = new JLabel(Integer.toString(onlineQueue.size())); //number of online user
-    private JLabel tablesNumber = new JLabel(Integer.toString(tables.size()));
-    private JTextArea logContent = new JTextArea(); //server log
 
     private ReversiServerMultiple(int port){
         try(ServerSocket serverSocket = new ServerSocket(port)){
-            this.setTitle("HACH-Reversi Server");
-            this.setSize(500, 500);
-            this.setVisible(true);
-            this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-
-            JPanel mainPanel = new JPanel();
-            JPanel serverInfo = new JPanel();   //server information
-            JLabel lbHost = new JLabel("Host: " + serverSocket.getLocalSocketAddress().toString());
-            JPanel onlinePanel = new JPanel();
-            JPanel inGamePanel = new JPanel();
-            JLabel lbOnline = new JLabel("Online users: ");
-            JLabel lbInGame = new JLabel("Tables: ");
-            JScrollPane logArea = new JScrollPane(logContent);
-
-            mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-            serverInfo.setLayout(new BoxLayout(serverInfo, BoxLayout.Y_AXIS));
-            onlinePanel.setLayout(new BoxLayout(onlinePanel, BoxLayout.X_AXIS));
-            inGamePanel.setLayout(new BoxLayout(inGamePanel, BoxLayout.X_AXIS));
-            Dimension dServerInfo = new Dimension(500, 50);
-            Dimension dLogArea = new Dimension(500, 450);
-            serverInfo.setPreferredSize(dServerInfo);
-            logArea.setPreferredSize(dLogArea);
-            logArea.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-            this.add(mainPanel);
-            mainPanel.add(serverInfo);
-            mainPanel.add(logArea);
-            serverInfo.add(lbHost);
-            serverInfo.add(onlinePanel);
-            serverInfo.add(inGamePanel);
-            onlinePanel.add(lbOnline);
-            onlinePanel.add(onlineNumber);
-            inGamePanel.add(lbInGame);
-            inGamePanel.add(tablesNumber);
-            logContent.setEditable(false);
-            printLog("Server on...");
-
-            this.addWindowListener(new WindowAdapter() {
-                public void windowClosing(WindowEvent e) {
-                    try {
-                        serverSocket.close();
-                    } catch (IOException e1) {
-                        e1.printStackTrace();
-                    }
-                    System.exit(0);
-                }
-            });
+            System.out.println("Server on...");
             for(;;) {
                 Socket client = serverSocket.accept();
                 Player player = new Player();
                 player.setSocket(client);
                 onlineQueue.add(player);
                 serverUpdate();
-                printLog("Client connected:" + client.getRemoteSocketAddress().toString());
+                System.out.println("Client connected:" + client.getRemoteSocketAddress().toString());
                 Thread t = new Thread(new ClientThread(player));    //build a new thread to client
                 t.start();
             }
@@ -103,7 +54,7 @@ public class ReversiServerMultiple extends JFrame{
         @Override
         public void run(){
             getMessage();
-            printLog("Client Disconnected: " + player.getSocket().getRemoteSocketAddress().toString());
+            System.out.println("Client Disconnected: " + player.getSocket().getRemoteSocketAddress().toString());
         }
 
         @Override
@@ -118,9 +69,7 @@ public class ReversiServerMultiple extends JFrame{
                     if(command.startsWith("{\"quit\":")){  //if get quit command from client, tell the other player
                         if(jsonGet.get("quit").equals("yes")){
                             if(player.isInGame()) {
-                                tables.get(player.getTableID()).stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
-                                    sendMessage(p, "message", ">>> Your rival left the game!");
-                                });
+                                tables.get(player.getTableID()).stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> sendMessage(p, "message", ">>> Your rival left the game!"));
                                 gameUpdate(tables.get(player.getTableID()));
                                 gameEnd(tables.get(player.getTableID())); //game should not keep running after that
                                 break;
@@ -216,9 +165,7 @@ public class ReversiServerMultiple extends JFrame{
                     serverUpdate();
                 } else if(jsonGet.get("command").toString().equals("surrender")){   //if player want surrender
                     //no matter who has more pieces in the map, surrender will affect the opponent wins
-                    tables.get(player.getTableID()).stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> {
-                        sendMessage(p, "message", ">>> Your rival surrendered!");
-                    });
+                    tables.get(player.getTableID()).stream().filter(p -> p.getSocket() != player.getSocket()).forEach(p -> sendMessage(p, "message", ">>> Your rival surrendered!"));
                     sendAllMessage(tables.get(player.getTableID()), "message", (player.getColor()==1) ? ">>> White wins!" : ">>> Black wins!");
                     gameUpdate(tables.get(player.getTableID()));
                     gameEnd(tables.get(player.getTableID()));
@@ -270,7 +217,7 @@ public class ReversiServerMultiple extends JFrame{
         private void gameStart(LinkedList<Player> players){
             gameOver = false;
             Algorithm algorithm = new Algorithm();
-            printLog("One game started");
+            System.out.println("One game started");
             players.getFirst().setColor(1);   //black player
             players.getFirst().setInGame(true);   //set player status
             players.getFirst().setTableID(tables.size());
@@ -304,7 +251,11 @@ public class ReversiServerMultiple extends JFrame{
             tables.set(players.getFirst().getTableID(), null);
             algorithms.set(players.getFirst().getAlgorithmID(), null);
             serverUpdate();
-            printLog("One game ended");
+            System.out.println("One game ended");
+            if(tables.size() == 0){
+                tables.clear();
+                algorithms.clear();
+            }
         }
 
         /**
@@ -382,17 +333,13 @@ public class ReversiServerMultiple extends JFrame{
     }   //end of Client thread
 
     private void serverUpdate(){
-        onlineNumber.setText(Integer.toString(onlineQueue.size()));
         int activeTables = 0;
         for(LinkedList t : tables){
             if(t != null)
                 activeTables++;
         }
-        tablesNumber.setText(Integer.toString(activeTables));
+        System.out.println("Online users: " + Integer.toString(onlineQueue.size()));
+        System.out.println("Tables: " + Integer.toString(activeTables));
     }
 
-    private void printLog(String log){
-        logContent.append(log + "\n");
-        logContent.setCaretPosition(logContent.getText().length());
-    }
 }

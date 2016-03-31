@@ -135,8 +135,8 @@ class Algorithm {
      * @return true if this place is available for current player
      */
     private boolean availablePlace(int cur, int i, int j, boolean execute) {
-        if(execute)
-            System.out.println("Player: " + (cur==1 ? "Black" : "White"));
+//        if(execute)
+//            System.out.println("Player: " + (cur==1 ? "Black" : "White"));
         boolean result = false;
         //to prevent out of range
         if(i>=0 && i<=7 && j>=0 && j<=7){
@@ -192,10 +192,10 @@ class Algorithm {
             result = search_action > 0;
         }
 
-        if(result && execute)
-            System.out.println("Player is on an available place");
-        else if(execute)
-            System.out.println("Player is on an unavailable place");
+//        if(result && execute)
+//            System.out.println("Player is on an available place");
+//        else if(execute)
+//            System.out.println("Player is on an unavailable place");
         return result;
     }
 
