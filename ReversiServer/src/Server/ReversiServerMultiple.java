@@ -216,22 +216,32 @@ public class ReversiServerMultiple{
          */
         private void gameStart(LinkedList<Player> players){
             gameOver = false;
+            int tableID = 0;
+            for(int i = 0; i < algorithms.size(); i++){
+                if(algorithms.get(i) == null){
+                    tableID = i;
+                    break;
+                } else{
+                    tableID = algorithms.size();
+                    break;
+                }
+            }
             Algorithm algorithm = new Algorithm();
             System.out.println("One game started");
             players.getFirst().setColor(1);   //black player
             players.getFirst().setInGame(true);   //set player status
-            players.getFirst().setTableID(tables.size());
-            players.getFirst().setAlgorithmID(tables.size());
+            players.getFirst().setTableID(tableID);
+            players.getFirst().setAlgorithmID(tableID);
             players.getLast().setColor(-1);   //white player
             players.getLast().setInGame(true);
-            players.getLast().setTableID(tables.size());
-            players.getLast().setAlgorithmID(tables.size());
+            players.getLast().setTableID(tableID);
+            players.getLast().setAlgorithmID(tableID);
             sendAllMessage(players, "message", "---------------------------------------------");
             sendMessage(players.getFirst(), "message", ">>> Rival found!\n>>> Game started!\n>>> You play as black");
             sendMessage(players.getLast(), "message", ">>> Rival found!\n>>> Game started!\n>>> You play as white");
             sendAllMessage(players, "game", "on");   //tell client change status
-            tables.add(players);
-            algorithms.add(algorithm);
+            tables.add(tableID, players);
+            algorithms.add(tableID, algorithm);
             waitingQueue = new LinkedList<Player>();
             gameUpdate(players);
             serverUpdate();
@@ -252,10 +262,6 @@ public class ReversiServerMultiple{
             algorithms.set(players.getFirst().getAlgorithmID(), null);
             serverUpdate();
             System.out.println("One game ended");
-            if(tables.size() == 0){
-                tables.clear();
-                algorithms.clear();
-            }
         }
 
         /**
